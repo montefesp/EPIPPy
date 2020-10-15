@@ -1,11 +1,12 @@
-from os.path import join, dirname, abspath
 from typing import List, Optional
 
 import geopandas as gpd
 import pandas as pd
 
-from pyggrid.data.geographics import convert_country_codes, replace_iso2_codes, match_points_to_regions
-from pyggrid.data.technologies import get_config_dict
+from cepdata.geographics import convert_country_codes, replace_iso2_codes, match_points_to_regions
+from cepdata.technologies import get_config_dict
+
+from cepdata import data_path
 
 
 def get_powerplants(tech_name: str, country_codes: List[str]) -> pd.DataFrame:
@@ -34,7 +35,7 @@ def get_powerplants(tech_name: str, country_codes: List[str]) -> pd.DataFrame:
 
     assert 'jrc_type' in tech_config, "Error: Capacities cannot be retrieved for this technology."
 
-    jrc_dir = join(dirname(abspath(__file__)), "../../../data/generation/misc/source/JRC/")
+    jrc_dir = f"{data_path}generation/misc/source/JRC/"
     if tech_name in ['ror', 'sto', 'phs']:
         # Hydro entries read from richer hydro-only database.
         pp_fn = f"{jrc_dir}hydro-power-database-master/data/jrc-hydro-power-plant-database.csv"

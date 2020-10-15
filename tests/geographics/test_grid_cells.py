@@ -1,7 +1,7 @@
 import pytest
 
-from pyggrid.data.geographics.grid_cells import *
-from pyggrid.data.geographics import get_shapes
+from cepdata.geographics.grid_cells import *
+from cepdata.geographics import get_shapes
 
 
 def test_create_grid_cells_too_coarse_resolution():
@@ -54,6 +54,6 @@ def test_get_grid_cells():
 
     assert isinstance(ds, pd.Series)
     assert len(ds['wind_offshore']) == 6
-    assert len(ds['wind_onshore']) == 61
-    assert len(ds['pv_utility']) == 61
+    assert len(ds['wind_onshore']) == 63
+    assert len(ds['pv_utility']) == 63
     assert (ds['wind_onshore'] == ds['pv_utility']).all()

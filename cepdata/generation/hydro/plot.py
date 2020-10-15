@@ -3,8 +3,8 @@ from typing import List
 import pandas as pd
 import plotly.graph_objects as go
 
-from pyggrid.data.geographics import convert_country_codes, get_subregions
-from pyggrid.data.generation.hydro import get_hydro_capacities
+from cepdata.geographics import convert_country_codes, get_subregions
+from cepdata.generation.hydro import get_hydro_capacities
 
 
 def plot_capacity_per_country(tech: str, countries: List[str],

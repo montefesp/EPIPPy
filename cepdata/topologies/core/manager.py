@@ -8,7 +8,7 @@ from vresutils.graph import voronoi_partition_pts
 import networkx as nx
 import numpy as np
 
-from pyggrid.data.geographics import get_points_in_shape
+from cepdata.geographics import get_points_in_shape
 
 
 def voronoi_special(shape: Union[Polygon, MultiPolygon], centroids: List[List[float]], resolution: float = 0.5):

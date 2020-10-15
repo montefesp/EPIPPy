@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.generation.vres.potentials.glaes import *
+from cepdata.generation.vres.potentials.glaes import *
 
 # All these tests were run with a pixelRes set to 1000
 

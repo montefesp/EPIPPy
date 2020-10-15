@@ -1,17 +1,17 @@
 import pytest
 
-from pyggrid.data.generation.vres.profiles import *
+from cepdata.generation.vres.profiles import *
 
 
 def test_read_resource_database_wrong_spatial_resolution():
     with pytest.raises(AssertionError):
-        read_resource_database(2.0)
+        read_resource_database(3.213)
 
 
 def test_read_resource_database_output():
     ds = read_resource_database(0.5)
     assert list(ds.data_vars) == ['u100', 'v100', 't2m', 'ssrd', 'fsr']
-    assert len(ds.locations) == 14641
+    assert len(ds.locations) == 18626
     assert round(float(np.mean(ds.u100.sel(locations=(4, 50.5)).values)), 4) == 1.6716
     assert round(float(np.mean(ds.v100.sel(locations=(4, 50.5)).values)), 4) == 1.6835
     assert round(float(np.mean(ds.t2m.sel(locations=(4, 50.5)).values)), 4) == 284.2072
@@ -30,7 +30,7 @@ def test_compute_capacity_factors_wrong_spatial_resolution():
     ts = pd.date_range('2015-01-01T00:00', '2016-01-31T23:00', freq='1H')
     tech_points = {"wind_onshore": [(0, 50)]}
     with pytest.raises(AssertionError):
-        compute_capacity_factors(tech_points, 2.0, ts)
+        compute_capacity_factors(tech_points, 3.213, ts)
 
 
 def test_compute_capacity_factors_empty_points_list():

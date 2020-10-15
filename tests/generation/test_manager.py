@@ -1,7 +1,7 @@
 import pytest
 
-from pyggrid.data.generation.manager import *
-from pyggrid.data.geographics import get_shapes
+from cepdata.generation.manager import *
+from cepdata.geographics import get_shapes
 
 
 def test_get_powerplants_wrong_technology():
@@ -102,7 +102,8 @@ def test_match_powerplants_to_regions_without_countries_shapes():
     df = get_powerplants('sto',  countries)
     ds = match_powerplants_to_regions(df, shapes)
     assert len(ds) == len(df)
-    assert all(sum(ds == c) == nb_plants[i] for i, c in enumerate(countries))
+    for i, c in enumerate(countries):
+        assert sum(ds == c) == nb_plants[i]
 
     regions = ["ES11", "ES12", "ES13", "ES21", "ES22", "ES23", "ES24", "ES41", "ES42", "ES43", "ES51", "ES52"]
     shapes = get_shapes(regions, which="onshore")["geometry"]
@@ -118,7 +119,8 @@ def test_match_powerplants_to_regions_without_shapes():
     df = get_powerplants('sto',  countries)
     ds = match_powerplants_to_regions(df, shapes, countries)
     assert len(ds) == len(df)
-    assert all(sum(ds == c) == nb_plants[i] for i, c in enumerate(countries))
+    for i, c in enumerate(countries):
+        assert sum(ds == c) == nb_plants[i]
 
     regions = ["ES11", "ES12", "ES13", "ES21", "ES22", "ES23", "ES24", "ES41", "ES42", "ES43", "ES51", "ES52"]
     shapes = get_shapes(regions, which="onshore")["geometry"]

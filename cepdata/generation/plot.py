@@ -2,8 +2,8 @@ from typing import List
 
 import plotly.graph_objects as go
 
-from pyggrid.data.geographics import convert_country_codes, get_subregions
-from pyggrid.data.generation import get_powerplants
+from cepdata.geographics import convert_country_codes, get_subregions
+from cepdata.generation import get_powerplants
 
 
 def plot_capacity_per_country(tech: str, countries: List[str],

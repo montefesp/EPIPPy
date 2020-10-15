@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.generation.hydro.manager import *
+from cepdata.generation.hydro.manager import *
 from datetime import datetime
 
 

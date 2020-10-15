@@ -1,5 +1,5 @@
 import pytest
-from pyggrid.data.indicators.emissions.manager import *
+from cepdata.indicators.emissions.manager import *
 
 
 def test_non_available_year():

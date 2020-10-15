@@ -1,4 +1,4 @@
-from os.path import dirname, join, abspath, isfile, isdir
+from os.path import isfile, isdir
 from os import makedirs
 from typing import List
 
@@ -15,16 +15,18 @@ import matplotlib.pyplot as plt
 
 import pypsa
 
-from pyggrid.data.geographics import get_shapes, get_natural_earth_shapes, get_nuts_shapes, replace_iso2_codes
-from pyggrid.data.technologies import get_costs
-from pyggrid.data.topologies.core import voronoi_special
+from cepdata.geographics import get_shapes, get_natural_earth_shapes, get_nuts_shapes, replace_iso2_codes
+from cepdata.technologies import get_costs
+from cepdata.topologies.core import voronoi_special
+
+from cepdata import data_path
 
 
 def get_ehighway_clusters() -> pd.DataFrame:
     """Return a DataFrame indicating for each ehighway cluster: its country, composing NUTS regions
      (either NUTS0 or country) and the position of the bus associated to this cluster (if the position
      is not specified one can obtain it by taking the centroid of the shapes)."""
-    eh_clusters_fn = join(dirname(abspath(__file__)), "../../../data/topologies/e-highways/source/clusters_2016.csv")
+    eh_clusters_fn = f"{data_path}topologies/e-highways/source/clusters_2016.csv"
     return pd.read_csv(eh_clusters_fn, delimiter=";", index_col="name")
 
 
@@ -38,8 +40,7 @@ def get_ehighway_shapes() -> pd.Series:
         DataFrame containing desired shapes.
     """
 
-    clusters_fn = join(dirname(abspath(__file__)),
-                       f"../../../data/topologies/e-highways/source/clusters_2016.csv")
+    clusters_fn = f"{data_path}topologies/e-highways/source/clusters_2016.csv"
     clusters = pd.read_csv(clusters_fn, delimiter=";", index_col=0)
 
     all_codes = []
@@ -74,14 +75,13 @@ def preprocess(plotting: bool = False):
         Whether to plot the results
     """
 
-    generated_dir = join(dirname(abspath(__file__)), "../../../data/topologies/e-highways/generated/")
+    generated_dir = f"{data_path}topologies/e-highways/generated/"
     if not isdir(generated_dir):
         makedirs(generated_dir)
 
     eh_clusters = get_ehighway_clusters()
 
-    line_data_fn = join(dirname(abspath(__file__)),
-                        "../../../data/topologies/e-highways/source/Results_GTC_estimation_updated.xlsx")
+    line_data_fn = f"{data_path}topologies/e-highways/source/Results_GTC_estimation_updated.xlsx"
     lines = pd.read_excel(line_data_fn, usecols="A:D", skiprows=[0], names=["name", "nb_lines", "MVA", "GTC"])
     lines["bus0"] = lines["name"].apply(lambda k: k.split('-')[0])
     lines["bus1"] = lines["name"].apply(lambda k: k.split('-')[1].split("_")[0])
@@ -201,7 +201,7 @@ def preprocess(plotting: bool = False):
         lines.loc[idx, "length"] = geopy.distance.geodesic((bus0_y, bus0_x), (bus1_y, bus1_x)).km
 
     if plotting:
-        from pyggrid.data.topologies.core.plot import plot_topology
+        from cepdata.topologies.core.plot import plot_topology
         plot_topology(buses, lines)
         plt.show()
 
@@ -239,7 +239,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
     assert countries is None or len(countries) != 0, "Error: Countries list must not be empty. If you want to " \
                                                      "obtain, the full topology, don't pass anything as argument."
 
-    topology_dir = join(dirname(abspath(__file__)), "../../../data/topologies/e-highways/generated/")
+    topology_dir = f"{data_path}topologies/e-highways/generated/"
     buses_fn = f"{topology_dir}buses.csv"
     assert isfile(buses_fn), f"Error: Buses are undefined. Please run 'preprocess'."
     buses = pd.read_csv(buses_fn, index_col='id')
@@ -319,6 +319,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
     # network.import_components_from_dataframe(lines, "Line") for dc-opf
 
     if plot:
+        from cepdata.topologies.core.plot import plot_topology
         plot_topology(buses, lines)
         plt.show()
 

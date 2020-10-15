@@ -41,7 +41,6 @@ def display_polygons(polygons_list: List[Union[Polygon, MultiPolygon]], fill=Tru
     from matplotlib import cm
     cmap = cm.get_cmap('viridis')
 
-    import numpy as np
     norm = np.linspace(0.3, 1, len(polygons_list))
     for i, polygons in enumerate(polygons_list):
         c = cmap(norm[i])#(random(), random(), random())
@@ -55,11 +54,11 @@ def display_polygons(polygons_list: List[Union[Polygon, MultiPolygon]], fill=Tru
             else:
                 ax.fill(longitudes, latitudes, transform=ccrs.PlateCarree(), color=c, zorder=0, alpha=0.5)
                 # Remove interior
-                #interior_polys = list(poly.interiors)
-                #for i_poly in interior_polys:
-                #    longitudes = [i[0] for i in i_poly.coords]
-                #    latitudes = [i[1] for i in i_poly.coords]
-                #    ax.fill(longitudes, latitudes, transform=ccrs.PlateCarree(), color='white', zorder=0)
+                interior_polys = list(poly.interiors)
+                for i_poly in interior_polys:
+                    longitudes = [i[0] for i in i_poly.coords]
+                    latitudes = [i[1] for i in i_poly.coords]
+                    ax.fill(longitudes, latitudes, transform=ccrs.PlateCarree(), color='white', zorder=0)
 
     if show:
         plt.show()

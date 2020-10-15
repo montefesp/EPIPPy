@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.topologies.tyndp2018 import *
+from cepdata.topologies.tyndp2018 import *
 
 
 def test_get_topology_no_countries():

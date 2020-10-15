@@ -7,9 +7,12 @@ import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cf
 
-from pyggrid.data.geographics import convert_country_codes, get_subregions
-from pyggrid.data.generation.vres.legacy import get_legacy_capacity_in_countries
-from pyggrid.data.technologies import get_config_values
+from cepdata.geographics import convert_country_codes, get_subregions
+from cepdata.generation.vres.legacy import get_legacy_capacity_in_countries
+from cepdata.technologies import get_config_values
+
+from cepdata import data_path
+
 
 def plot_capacity_per_country(tech: str, countries: List[str],
                               lonrange=None, latrange=None) -> None:
@@ -55,8 +58,7 @@ def plot_per_point(tech: str, show: bool = True):
 
     # TODO: revise
     plant, plant_type = get_config_values(tech, ["plant", "type"])
-    capacities_df = pd.read_csv("/home/utilisateur/Global_Grid/code/pyggrid/data/generation/vres/legacy/"
-                                "generated/aggregated_capacity_harmonized.csv",
+    capacities_df = pd.read_csv(f"{data_path}generation/vres/legacy/generated/aggregated_capacity_harmonized.csv",
                                 index_col=[0, 1]).loc[plant].loc[plant_type]
     capacities_df = capacities_df[capacities_df["ISO2"] != 'IS']
     capacities_df = capacities_df[capacities_df["Capacity (GW)"] != 0.0]
@@ -84,14 +86,12 @@ def plot_per_point(tech: str, show: bool = True):
 def plot_diff(tech: str, show: bool = True):
 
     plant, plant_type = get_config_values(tech, ["plant", "type"])
-    capacities_df = pd.read_csv("/home/utilisateur/Global_Grid/code/pyggrid/data/generation/vres/legacy/"
-                                "generated/aggregated_capacity.csv",
+    capacities_df = pd.read_csv(f"{data_path}generation/vres/legacy/generated/aggregated_capacity.csv",
                                 index_col=[0, 1]).loc[plant].loc[plant_type]
     capacities_df = capacities_df[capacities_df["ISO2"] != 'IS']
     capacities_df = capacities_df[capacities_df["Capacity (GW)"] != 0.0]
 
-    capacities_df_h = pd.read_csv("/home/utilisateur/Global_Grid/code/pyggrid/data/generation/vres/legacy/"
-                                  "generated/aggregated_capacity_harmonized.csv",
+    capacities_df_h = pd.read_csv(f"{data_path}generation/vres/legacy/generated/aggregated_capacity_harmonized.csv",
                                   index_col=[0, 1]).loc[plant].loc[plant_type]
     capacities_df_h = capacities_df_h[capacities_df_h["ISO2"] != 'IS']
     capacities_df_h = capacities_df_h[capacities_df_h["Capacity (GW)"] != 0.0]
@@ -116,6 +116,7 @@ def plot_diff(tech: str, show: bool = True):
         plt.show()
     else:
         return ax
+
 
 if __name__ == '__main__':
     regions = get_subregions("EU2")

@@ -1,8 +1,8 @@
 from typing import List
 
-from pyggrid.data.generation.vres.potentials.glaes import get_capacity_potential_per_country
-from pyggrid.data.geographics import convert_country_codes
-from pyggrid.data.technologies import get_config_dict
+from cepdata.generation.vres.potentials.glaes import get_capacity_potential_per_country
+from cepdata.geographics import convert_country_codes
+from cepdata.technologies import get_config_dict
 
 import plotly.graph_objects as go
 
@@ -55,7 +55,7 @@ def plot_capacity(tech: str, countries: List[str],
 
 
 if __name__ == '__main__':
-    from pyggrid.data.geographics import get_subregions
+    from cepdata.geographics import get_subregions
     countries_ = get_subregions("BENELUX")
     tech_ = "pv_residential"
     plot_capacity(tech_, countries_, lon_range=[-12, 30], lat_range=[35, 75])

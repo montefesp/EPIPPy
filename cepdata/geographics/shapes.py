@@ -1,4 +1,4 @@
-from os.path import join, dirname, abspath, isfile
+from os.path import isfile
 from typing import List
 
 from six.moves import reduce
@@ -10,7 +10,10 @@ from shapely.ops import unary_union
 
 import hashlib
 
-from pyggrid.data.geographics.codes import convert_country_codes, replace_iso2_codes, remove_landlocked_countries
+from cepdata.geographics.codes import convert_country_codes, replace_iso2_codes, \
+    remove_landlocked_countries, convert_old_country_names
+
+from cepdata import data_path
 
 
 def correct_shapes(shapes: gpd.GeoSeries) -> gpd.GeoSeries:
@@ -22,7 +25,7 @@ def correct_shapes(shapes: gpd.GeoSeries) -> gpd.GeoSeries:
     return shapes
 
 
-def get_natural_earth_shapes_2(iso_codes: List[str] = None) -> gpd.GeoSeries:
+def get_arcgis_shapes(iso_codes: List[str] = None) -> gpd.GeoSeries:
     """
     Return onshore shapes from naturalearth data (ISO_2 codes).
 
@@ -37,21 +40,11 @@ def get_natural_earth_shapes_2(iso_codes: List[str] = None) -> gpd.GeoSeries:
         Series containing desired shapes.
     """
 
-    natearth_fn = join(dirname(abspath(__file__)),
-                       "../../../data/geographics/source/naturalearth/"
-                       "ne_10m_admin_0_map_units/ne_10m_admin_0_map_units.shp")
-    shapes = gpd.read_file(natearth_fn)
-
-    # Names are a hassle in naturalearth, several fields are combined.
-    field_names = [shapes[x].where(lambda s: s != "-99") for x in ('ISO_A2', 'WB_A2', 'ADM0_A3')]
-    field_names[2] = pd.Series(convert_country_codes(field_names[2].values, "alpha_3", "alpha_2"))
-
-    # assert 'GB' in field_names[0].index
-
-    # Fill in NA values by using the other codes
-    shapes["iso2"] = reduce(lambda x, y: x.fillna(y), field_names)
-    shapes = shapes[shapes['scalerank'] == 0]
-    # Remove remaining NA
+    arcgis_fn = f"{data_path}geographics/source/Longitude_Graticules_and_World_Countries_Boundaries-shp/" \
+                f"99bfd9e7-bb42-4728-87b5-07f8c8ac631c2020328-1-1vef4ev.lu5nk.shp"
+    shapes = gpd.read_file(arcgis_fn)
+    shapes["CNTRY_NAME"] = shapes["CNTRY_NAME"].apply(convert_old_country_names)
+    shapes["iso2"] = pd.Series(convert_country_codes(shapes["CNTRY_NAME"].values, "name", "alpha_2"))
     shapes = shapes[pd.notnull(shapes["iso2"])]
     shapes = shapes.set_index("iso2")['geometry']
 
@@ -61,11 +54,11 @@ def get_natural_earth_shapes_2(iso_codes: List[str] = None) -> gpd.GeoSeries:
                                   f"following codes: {sorted(list(missing_codes))}"
         shapes = shapes[iso_codes]
 
-    shapes_final = gpd.GeoSeries(index=set(shapes.index))
-    for idx in set(shapes.index):
-        shapes_final[idx] = unary_union(shapes[idx])
+    #shapes_final = gpd.GeoSeries(index=set(shapes.index))
+    #for idx in set(shapes.index):
+    #    shapes_final[idx] = unary_union(shapes[idx])
 
-    shapes = correct_shapes(shapes_final)
+    # shapes = correct_shapes(shapes_final)
 
     return shapes
 
@@ -85,8 +78,7 @@ def get_natural_earth_shapes(iso_codes: List[str] = None) -> gpd.GeoSeries:
         Series containing desired shapes.
     """
 
-    natearth_fn = join(dirname(abspath(__file__)),
-                       "../../../data/geographics/source/naturalearth/countries/ne_10m_admin_0_countries.shp")
+    natearth_fn = f"{data_path}geographics/source/naturalearth/countries/ne_10m_admin_0_countries.shp"
     shapes = gpd.read_file(natearth_fn)
 
     # Names are a hassle in naturalearth, several fields are combined.
@@ -134,7 +126,7 @@ def get_nuts_shapes(nuts_level: str, nuts_codes: List[str] = None) -> gpd.GeoSer
     assert nuts_codes is None or all([len(code) == required_len for code in nuts_codes]), \
         f"Error: All NUTS{nuts_level} codes must be of length {required_len}."
 
-    eurostat_dir = join(dirname(abspath(__file__)), "../../../data/geographics/source/eurostat/")
+    eurostat_dir = f"{data_path}geographics/source/eurostat/"
     nuts_fn = f"{eurostat_dir}NUTS_RG_01M_2016_4326_LEVL_{nuts_level}.geojson"
     shapes = gpd.read_file(nuts_fn)
 
@@ -177,7 +169,7 @@ def get_onshore_shapes(region_list: List[str]) -> gpd.GeoSeries:
 
     # ISO codes
     if code_length == 2:
-        return get_natural_earth_shapes(region_list)
+        return get_arcgis_shapes(region_list)
     # NUTS codes
     else:
         nuts_level = str(code_length - 2)
@@ -207,7 +199,7 @@ def get_offshore_shapes(iso_codes: List[str]) -> gpd.GeoSeries:
     # Remove landlocked countries for which there is no offshore shapes
     iso_codes = remove_landlocked_countries(iso_codes)
 
-    eez_fn = join(dirname(abspath(__file__)), "../../../data/geographics/source/eez/World_EEZ_v8_2014.shp")
+    eez_fn = f"{data_path}geographics/source/eez/World_EEZ_v8_2014.shp"
     eez_shapes = gpd.read_file(eez_fn)
 
     eez_shapes = eez_shapes[pd.notnull(eez_shapes['ISO_3digit'])]
@@ -250,8 +242,7 @@ def get_eez_and_land_union_shapes(iso2_codes: List[str]) -> pd.Series:
      for French Guyana and France are associated to different entries.
     """
 
-    shape_fn = join(dirname(abspath(__file__)),
-                    "../../../data/geographics/source/EEZ_land_union/EEZ_Land_v3_202030.shp")
+    shape_fn = f"{data_path}geographics/source/EEZ_land_union/EEZ_Land_v3_202030.shp"
     shapes = gpd.read_file(shape_fn)
 
     # Convert country ISO2 codes to ISO3
@@ -296,7 +287,7 @@ def get_shapes(region_codes: List[str], which: str = 'onshore_offshore', save: b
     # If shapes for those codes were previously computed, output is returned directly from file.
     sorted_name = "".join(sorted(region_codes))
     hash_name = hashlib.sha224(bytes(sorted_name, 'utf-8')).hexdigest()[:10]
-    fn = join(dirname(abspath(__file__)), f"../../../data/geographics/generated/{hash_name}.geojson")
+    fn = f"{data_path}geographics/generated/{hash_name}.geojson"
     if isfile(fn):
         shapes = gpd.read_file(fn).set_index('name')
         if which == 'onshore':
@@ -336,6 +327,12 @@ def get_shapes(region_codes: List[str], which: str = 'onshore_offshore', save: b
         union_shape = unary_union(get_eez_and_land_union_shapes([iso_code]))
         return x['geometry'].intersection(union_shape)
     shapes['geometry'] = shapes.apply(lambda x: filter_shape(x), axis=1)
+
+    # TODO: warning this must not stay
+    # Crop regions going too far north
+    nordics = list({"FI", "NO", "SE"}.intersection(set(iso_codes)))
+    intersection_poly = Polygon([(0., 50.), (0., 66.5), (40., 66.5), (40., 50.)])
+    shapes.loc[nordics, "geometry"] = shapes.loc[nordics, "geometry"].apply(lambda x: x.intersection(intersection_poly))
 
     if save:
         shapes["name"] = shapes.index

@@ -1,4 +1,4 @@
-from pyggrid.data.technologies.costs import *
+from cepdata.technologies.costs import *
 
 
 def test_get_costs_output_format():

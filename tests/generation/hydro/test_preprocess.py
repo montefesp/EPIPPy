@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.generation.hydro.preprocess import *
+from cepdata.generation.hydro.preprocess import *
 
 
 def get_timestamps(years: List[int]):

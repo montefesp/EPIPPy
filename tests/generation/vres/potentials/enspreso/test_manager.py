@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.generation.vres.potentials.enspreso import *
+from cepdata.generation.vres.potentials.enspreso import *
 
 
 def test_get_available_regions_wrong_type():

@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.indicators.population import *
+from cepdata.indicators.population import *
 
 
 def test_wrong_input():

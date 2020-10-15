@@ -1,6 +1,6 @@
 import pytest
 
-from pyggrid.data.geographics.codes import *
+from cepdata.geographics.codes import *
 
 
 def test_convert_country_codes_wrong_country():

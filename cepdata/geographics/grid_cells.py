@@ -11,9 +11,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cf
 from vresutils.graph import voronoi_partition_pts
 
-from pyggrid.data.geographics import get_points_in_shape
-from pyggrid.data.geographics.plot import display_polygons
-from pyggrid.data.technologies import get_config_dict
+from cepdata.geographics import get_points_in_shape
+from cepdata.geographics.plot import display_polygons
+from cepdata.technologies import get_config_dict
 
 import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(asctime)s - %(message)s")

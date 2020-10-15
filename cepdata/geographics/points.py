@@ -12,7 +12,7 @@ from shapely.errors import TopologicalError
 from shapely.geometry import Point, MultiPoint, Polygon, MultiPolygon
 import geopy.distance
 
-from pyggrid.data.geographics.shapes import get_shapes
+from cepdata.geographics.shapes import get_shapes
 
 import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(asctime)s - %(message)s")
