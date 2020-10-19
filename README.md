@@ -1,2 +1,2 @@
-# cepdata
-Capacity Expansion Planning Data manipulation tools
+# iepy
+Input preprocessing for Expansion Planning in Python
