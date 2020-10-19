@@ -1,7 +1,7 @@
 import pytest
 
-from cepdata.generation.vres.legacy.manager import *
-from cepdata.geographics.shapes import get_shapes
+from iepy.generation.vres.legacy.manager import *
+from iepy.geographics.shapes import get_shapes
 
 
 def test_get_legacy_capacity_in_countries_wrong_tech():

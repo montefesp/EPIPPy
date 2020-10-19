@@ -1,7 +1,7 @@
 import pytest
 
-from cepdata.generation.manager import *
-from cepdata.geographics import get_shapes
+from iepy.generation.manager import *
+from iepy.geographics import get_shapes
 
 
 def test_get_powerplants_wrong_technology():

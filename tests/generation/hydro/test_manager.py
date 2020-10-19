@@ -1,6 +1,6 @@
 import pytest
 
-from cepdata.generation.hydro.manager import *
+from iepy.generation.hydro.manager import *
 from datetime import datetime
 
 

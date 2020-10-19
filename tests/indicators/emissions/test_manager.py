@@ -1,5 +1,5 @@
 import pytest
-from cepdata.indicators.emissions.manager import *
+from iepy.indicators.emissions.manager import *
 
 
 def test_non_available_year():

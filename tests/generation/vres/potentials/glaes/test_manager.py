@@ -1,6 +1,6 @@
 import pytest
 
-from cepdata.generation.vres.potentials.glaes import *
+from iepy.generation.vres.potentials.glaes import *
 
 # All these tests were run with a pixelRes set to 1000
 

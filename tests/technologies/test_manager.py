@@ -1,6 +1,6 @@
 import pytest
 
-from cepdata.technologies.manager import *
+from iepy.technologies.manager import *
 
 
 def test_get_config_dict_empty_list_of_techs():

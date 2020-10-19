@@ -1,7 +1,7 @@
 import pytest
 
-from cepdata.geographics.points import *
-from cepdata.geographics import get_shapes
+from iepy.geographics.points import *
+from iepy.geographics import get_shapes
 
 
 def test_match_points_to_regions_empty_list_of_points():

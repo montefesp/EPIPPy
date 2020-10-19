@@ -1,6 +1,6 @@
 import pytest
 
-from cepdata.load.manager import *
+from iepy.load.manager import *
 
 
 def test_get_yearly_country_load_missing_country():

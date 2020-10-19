@@ -3,10 +3,10 @@ import os
 
 from shapely.geometry import MultiPolygon
 
-from cepdata.geographics.shapes import *
+from iepy.geographics.shapes import *
 
-from cepdata.geographics import get_subregions
-from cepdata.geographics.plot import display_polygons
+from iepy.geographics import get_subregions
+from iepy.geographics.plot import display_polygons
 
 
 def check_series(gs, codes):
