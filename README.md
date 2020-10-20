@@ -1,3 +1,5 @@
+<a href="https://www.montefiore.uliege.be/"><img src="https://www.montefiore.uliege.be/upload/docs/image/svg-xml/2019-04/montefiore_institute.svg" alt="University of Liège - Montefiore institute" width="230px"></a>
+
 # iepy
 Input preprocessing for Expansion Planning in Python
 
