@@ -12,8 +12,8 @@ import dask.array as da
 import dask
 dask.config.set({"array.slicing.split_large_chunks": True})
 
-from shapely.geometry import Point, Polygon
-import atlite
+# from shapely.geometry import Point, Polygon
+# import atlite
 import windpowerlib
 
 from iepy.technologies import get_config_dict, get_config_values

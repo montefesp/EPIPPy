@@ -41,7 +41,7 @@ def get_glaes_prior_defaults(config: List[str], priors: List[str] = None) -> Dic
 
     # Get the main configuration file
     assert len(config) != 0
-    exclusions_fn = f"{data_path}generation/vres/potentials/source/GLAES/exclusions/{config[0]}.yml"
+    exclusions_fn = f"{data_path}technologies/glaes_exclusions/{config[0]}.yml"
     assert isfile(exclusions_fn), f"Error: No exclusion configuration named {config[0]}. File {exclusions_fn} not found"
     prior_threshold_dict = yaml.load(open(exclusions_fn, 'r'), Loader=yaml.FullLoader)
 

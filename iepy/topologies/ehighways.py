@@ -3,7 +3,7 @@ from os import makedirs
 from typing import List
 
 import pandas as pd
-import geopandas as gpd
+# import geopandas as gpd
 
 import geopy.distance
 import shapely
