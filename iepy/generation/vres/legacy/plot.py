@@ -55,10 +55,10 @@ def plot_capacity_per_country(tech: str, countries: List[str],
 
 
 def plot_per_point(tech: str, show: bool = True):
+    """Plot capacity potential distribution of a given technology"""
 
-    # TODO: revise
     plant, plant_type = get_config_values(tech, ["plant", "type"])
-    capacities_df = pd.read_csv(f"{data_path}generation/vres/legacy/generated/aggregated_capacity_harmonized.csv",
+    capacities_df = pd.read_csv(f"{data_path}generation/vres/legacy/generated/aggregated_capacity.csv",
                                 index_col=[0, 1]).loc[plant].loc[plant_type]
     capacities_df = capacities_df[capacities_df["ISO2"] != 'IS']
     capacities_df = capacities_df[capacities_df["Capacity (GW)"] != 0.0]
@@ -120,6 +120,6 @@ def plot_diff(tech: str, show: bool = True):
 
 if __name__ == '__main__':
     regions = get_subregions("EU2")
-    #plot_capacity_per_country("wind_offshore", regions, lonrange=[-12, 30], latrange=[35, 75])
-    # plot_per_point("wind_onshore")
-    plot_diff("wind_onshore")
+    # plot_capacity_per_country("wind_offshore", regions, lonrange=[-12, 30], latrange=[35, 75])
+    plot_per_point("wind_onshore")
+    # plot_diff("wind_onshore")

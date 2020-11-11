@@ -70,7 +70,6 @@ def read_resource_database(spatial_resolution: float) -> xr.Dataset:
     # Concatenate all regions on locations.
     dataset = xr.concat(datasets, dim='locations')
     # Removing duplicates potentially there from previous concat of multiple regions.
-    # TODO: deal with performannce warning
     _, index = np.unique(dataset['locations'], return_index=True)
     dataset = dataset.isel(locations=index)
     # dataset = dataset.sel(locations=~dataset.indexes['locations'].duplicated(keep='first'))
@@ -211,7 +210,6 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
             converter = converters_dict[tech]["converter"]
 
             # Get irradiance in W from J
-            # TODO: getting NANs here... and not always the same number
             irradiance = sub_dataset.ssrd / 3600.
             # Get temperature in C from K
             temperature = sub_dataset.t2m - 273.15
