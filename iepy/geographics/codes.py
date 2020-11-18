@@ -127,6 +127,12 @@ def convert_old_country_names(c: str) -> str:
     if c == "Czech Republic":
         return "Czechia"
 
+    if c == 'Syria':
+        return 'Syrian Arab Republic'
+
+    if c == 'Iran':
+        return 'Iran, Islamic Republic of'
+
     return c
 
 
