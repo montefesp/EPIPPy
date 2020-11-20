@@ -3,6 +3,8 @@ from typing import List
 import warnings
 
 import pandas as pd
+import xarray as xr
+import numpy as np
 
 from iepy.geographics.grid_cells import get_grid_cells
 from iepy.geographics import get_shapes, match_points_to_regions, convert_country_codes
@@ -12,6 +14,7 @@ from iepy import data_path
 
 
 def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.Series, countries: List[str],
+                                                 spatial_res: float,
                                                  match_distance: float = 50., raise_error: bool = True) -> pd.Series:
     """
     Return the total existing capacity (in GW) for the given tech for a set of geographical regions.
@@ -26,6 +29,8 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         Geographical regions
     countries: List[str]
         List of ISO codes of countries in which the regions are situated
+    spatial_res: float
+        Spatial resolution of data
     match_distance: float (default: 50)
         Distance threshold (in km) used when associating points to shape.
     raise_error: bool (default: True)
@@ -39,6 +44,8 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
     """
 
     path_legacy_data = f"{data_path}generation/vres/legacy/source/"
+    path_gdp_data = f"{data_path}indicators/gdp/source"
+    path_pop_data = f"{data_path}indicators/population/source"
 
     capacities = pd.Series(0., index=regions_shapes.index)
     plant, plant_type = get_config_values(tech, ["plant", "type"])
@@ -103,13 +110,45 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         if len(data) == 0:
             return capacities
 
-        # Get countries shapes
-        countries_shapes = get_shapes(data.index.values, which='onshore', save=True)["geometry"]
+        gdp_data_fn = join(path_gdp_data, "GDP_per_capita_PPP_1990_2015_v2.nc")
+        gdp_data = xr.open_dataset(gdp_data_fn)
+        gdp_2015 = gdp_data.sel(time='2015.0')
 
+        pop_data_fn = join(path_pop_data, "gpw_v4_population_count_adjusted_rev11_15_min.nc")
+        pop_data = xr.open_dataset(pop_data_fn)
+        pop_2020 = pop_data.sel(raster=5)
+
+        # Temporary, to reduce the size of this ds, which is anyway read in each iteration.
+        min_lon, max_lon, min_lat, max_lat = -11., 32., 35., 70.
+        mask_lon = (gdp_2015.longitude >= min_lon) & (gdp_2015.longitude <= max_lon)
+        mask_lat = (gdp_2015.latitude >= min_lat) & (gdp_2015.latitude <= max_lat)
+
+        new_lon = np.arange(min_lon, max_lon+spatial_res, spatial_res)
+        new_lat = np.arange(min_lat, max_lat+spatial_res, spatial_res)
+
+        gdp_ds = gdp_2015.where(mask_lon & mask_lat, drop=True)['GDP_per_capita_PPP']
+        pop_ds = pop_2020.where(mask_lon & mask_lat, drop=True)['UN WPP-Adjusted Population Count, v4.11 (2000, 2005, 2010, 2015, 2020): 15 arc-minutes']
+
+        gdp_ds = gdp_ds.reindex(longitude=new_lon, latitude=new_lat, method='nearest')\
+            .stack(locations=('longitude', 'latitude'))
+        pop_ds = pop_ds.reindex(longitude=new_lon, latitude=new_lat, method='nearest')\
+            .stack(locations=('longitude', 'latitude'))
+
+        all_sites = [(idx[0], idx[1]) for idx in regions_shapes.index]
+        total_gdp_per_capita = gdp_ds.sel(locations=all_sites).sum().values
+        total_population = pop_ds.sel(locations=all_sites).sum().values
+
+        df_metrics = pd.DataFrame(index=regions_shapes.index, columns=['gdp', 'pop'])
         for region_id, region_shape in regions_shapes.items():
-            for country_id, country_shape in countries_shapes.items():
-                capacities[region_id] += \
-                    (region_shape.intersection(country_shape).area/country_shape.area) * data[country_id]
+            lon, lat = region_id[0], region_id[1]
+            df_metrics.loc[region_id, 'gdp'] = gdp_ds.sel(longitude=lon, latitude=lat).values/total_gdp_per_capita
+            df_metrics.loc[region_id, 'pop'] = pop_ds.sel(longitude=lon, latitude=lat).values/total_population
+
+        df_metrics['gdppop'] = df_metrics['gdp'] * df_metrics['pop']
+        df_metrics['gdppop_norm'] = df_metrics['gdppop']/df_metrics['gdppop'].sum()
+
+        capacities = df_metrics['gdppop_norm'] * data[countries[0]]
+        capacities = capacities.reset_index()['gdppop_norm']
 
     else:
         if raise_error:
@@ -131,9 +170,9 @@ def aggregate_legacy_capacity(spatial_resolution: float):
 
     """
 
-    countries = ["AL", "AT", "BA", "BE", "BG", "BY", "CH", "CY", "CZ", "DE", "DK", "EE", "ES",
-                 "FI", "FO", "FR", "GB", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV",
-                 "ME", "MK", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "UA"]
+    countries = ["AL", "AT", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES",
+                 "FI", "FR", "GB", "GR", "HR", "HU", "IE", "IS", "IT", "LT", "LU", "LV",
+                 "ME", "MK", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK"] # removed ["BY", "UA", "FO"]
 
     technologies = ["wind_onshore", "wind_offshore", "pv_utility", "pv_residential"]
 
@@ -156,9 +195,14 @@ def aggregate_legacy_capacity(spatial_resolution: float):
         # Get capacity in each grid cell
         capacities_per_country_ds = pd.Series(index=grid_cells_ds.index, name="Capacity (GW)")
         for tech in technologies_in_country:
-            capacities_per_country_ds[tech] = \
-                get_legacy_capacity_in_regions_from_non_open(tech, grid_cells_ds.loc[tech].reset_index()[0], [country],
-                                                             match_distance=100)
+            if tech == 'pv_residential':
+                capacities_per_country_ds[tech] = \
+                    get_legacy_capacity_in_regions_from_non_open(tech, grid_cells_ds.loc[tech], [country],
+                                                                 spatial_resolution, match_distance=100)
+            else:
+                capacities_per_country_ds[tech] = \
+                    get_legacy_capacity_in_regions_from_non_open(tech, grid_cells_ds.loc[tech].reset_index()[0],
+                                                                 [country], spatial_resolution, match_distance=100)
         capacities_per_country_df = capacities_per_country_ds.to_frame()
         capacities_per_country_df.loc[:, "ISO2"] = country
         capacities_df_ls += [capacities_per_country_df]
@@ -175,9 +219,27 @@ def aggregate_legacy_capacity(spatial_resolution: float):
     capacities_df = capacities_df.set_index(["Plant", "Type", "Longitude", "Latitude"])
 
     legacy_dir = f"{data_path}generation/vres/legacy/generated/"
-    capacities_df.round(4).to_csv(f"{legacy_dir}aggregated_capacity.csv",
+    capacities_df.round(4).to_csv(f"{legacy_dir}aggregated_capacity_test.csv",
                                   header=True, columns=["ISO2", "Capacity (GW)"])
 
 
 if __name__ == '__main__':
+
     aggregate_legacy_capacity(0.25)
+
+    # technologies = ["pv_residential"]
+    # spatial_res = 1.0
+    # countries = ["DE", "FR", "BE"]
+    # cap_dict = dict.fromkeys(countries)
+    #
+    # for country in countries:
+    #
+    #     shapes = get_shapes([country], which='onshore')
+    #     onshore_shape = shapes["geometry"].values[0]
+    #     region_shapes = get_grid_cells(technologies, spatial_res, onshore_shape)
+    #
+    #     for tech in technologies:
+    #
+    #         cap_dict[country] = get_legacy_capacity_in_regions_from_non_open(tech, region_shapes, [country], spatial_res)
+    #         print(cap_dict[country])
+
