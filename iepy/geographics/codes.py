@@ -46,7 +46,7 @@ def convert_country_codes(source_codes: List[str], source_format: str, target_fo
 
 def remove_landlocked_countries(country_list: List[str]) -> List[str]:
     """Filtering out landlocked countries."""
-    landlocked_countries = {'AT', 'BY', 'CH', 'CZ', 'HU', 'LI', 'LU', 'MD', 'MK', 'RS', 'SK'}
+    landlocked_countries = {'AT', 'BA', 'BY', 'CH', 'CZ', 'HU', 'LI', 'LU', 'MD', 'MK', 'RS', 'SK'}
     return sorted(list(set(country_list) - landlocked_countries))
 
 
@@ -132,6 +132,9 @@ def convert_old_country_names(c: str) -> str:
 
     if c == 'Iran':
         return 'Iran, Islamic Republic of'
+
+    if c == "Byelarus":
+        return "Belarus"
 
     return c
 
