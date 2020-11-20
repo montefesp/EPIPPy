@@ -97,7 +97,7 @@ def preprocess(plotting: bool = False):
                 lines.loc[idx].bus1 not in eh_clusters.index.values:
             lines = lines.drop([idx])
 
-    buses = pd.DataFrame(columns=["x", "y", "country", "region", "onshore"], index=eh_clusters.index)
+    buses = pd.DataFrame(columns=["x", "y", "country", "onshore_region", "offshore_region"], index=eh_clusters.index)
     buses.index.names = ["id"]
     buses.country = eh_clusters.country
 
@@ -117,30 +117,30 @@ def preprocess(plotting: bool = False):
             x = float(centroid.strip("(").strip(")").split(",")[0])
             y = float(centroid.strip("(").strip(")").split(",")[1])
             centroid = shapely.geometry.Point(x, y)
-        buses.loc[idx].region = cluster_shape
+        buses.loc[idx].onshore_region = cluster_shape
         buses.loc[idx].x = centroid.x
         buses.loc[idx].y = centroid.y
         buses.loc[idx].onshore = True
 
     # Offshore nodes
-    add_buses = pd.DataFrame([["OFF1", -6.5, 49.5, None, Point(-6.5, 49.5), False],  # England south-west
-                              ["OFF2", 3.5, 55.5, None, Point(3.5, 55.5), False],  # England East
-                              ["OFF3", 30.0, 43.5, None, Point(30.0, 43.5), False],  # Black Sea
-                              ["OFF4", 18.5, 56.5, None, Point(18.5, 56.5), False],  # Sweden South-east
-                              ["OFF5", 19.5, 62.0, None, Point(19.5, 62.0), False],  # Sweden North-east
-                              ["OFF6", -3.0, 46.5, None, Point(-3.0, 46.5), False],  # France west
-                              ["OFF7", -5.0, 54.0, None, Point(-5.0, 54.0), False],  # Isle of Man
-                              ["OFF8", -7.5, 56.5, None, Point(-7.5, 56.0), False],  # Uk North
-                              ["OFF9", 15.0, 43.0, None, Point(15.0, 43.0), False],  # Italy east
-                              ["OFFA", 25.0, 39.0, None, Point(25.0, 39.0), False],  # Greece East
-                              ["OFFB", 1.5, 40.0, None, Point(1.5, 40.0), False],  # Spain east
-                              ["OFFC", 9.0, 65.0, None, Point(9.0, 65.0), False],  # Norway South-West
-                              ["OFFD", 14.5, 69.0, None, Point(14.0, 68.5), False],  # Norway North-West
-                              # ["OFFE", 26.0, 72.0, Point(26.0, 72.0), False],  # Norway North-West Norther
-                              ["OFFF", 11.5, 57.0, None, Point(11.5, 57.0), False],  # East Denmark
-                              ["OFFG", -1.0, 50.0, None, Point(-1.0, 50.0), False],  # France North
-                              ["OFFI", -9.5, 41.0, None, Point(-9.5, 41.0), False]],  # Portugal West
-                             columns=["id", "x", "y", "country", "region", "onshore"])
+    add_buses = pd.DataFrame([["OFF1", -6.5, 49.5, None, None, Point(-6.5, 49.5)],  # England south-west
+                              ["OFF2", 3.5, 55.5, None, None, Point(3.5, 55.5)],  # England East
+                              ["OFF3", 30.0, 43.5, None, None, Point(30.0, 43.5)],  # Black Sea
+                              ["OFF4", 18.5, 56.5, None, None, Point(18.5, 56.5)],  # Sweden South-east
+                              ["OFF5", 19.5, 62.0, None, None, Point(19.5, 62.0)],  # Sweden North-east
+                              ["OFF6", -3.0, 46.5, None, None, Point(-3.0, 46.5)],  # France west
+                              ["OFF7", -5.0, 54.0, None, None, Point(-5.0, 54.0)],  # Isle of Man
+                              ["OFF8", -7.5, 56.5, None, None, Point(-7.5, 56.0)],  # Uk North
+                              ["OFF9", 15.0, 43.0, None, None, Point(15.0, 43.0)],  # Italy east
+                              ["OFFA", 25.0, 39.0, None, None, Point(25.0, 39.0)],  # Greece East
+                              ["OFFB", 1.5, 40.0, None, None, Point(1.5, 40.0)],  # Spain east
+                              ["OFFC", 9.0, 65.0, None, None, Point(9.0, 65.0)],  # Norway South-West
+                              ["OFFD", 14.5, 69.0, None, None, Point(14.0, 68.5)],  # Norway North-West
+                              # ["OFFE", 26.0, 72.0, Point(26.0, 72.0)],  # Norway North-West Norther
+                              ["OFFF", 11.5, 57.0, None, None, Point(11.5, 57.0)],  # East Denmark
+                              ["OFFG", -1.0, 50.0, None, None, Point(-1.0, 50.0)],  # France North
+                              ["OFFI", -9.5, 41.0, None, None, Point(-9.5, 41.0)]],  # Portugal West
+                             columns=["id", "x", "y", "country", "onshore_region", "offshore_region"])
     add_buses = add_buses.set_index("id")
     buses = buses.append(add_buses)
 
@@ -202,7 +202,7 @@ def preprocess(plotting: bool = False):
 
     if plotting:
         from iepy.topologies.core.plot import plot_topology
-        plot_topology(buses, lines)
+        plot_topology(buses.dropna(subset=["onshore_region"]), lines)
         plt.show()
 
     buses.to_csv(f"{generated_dir}buses.csv")
@@ -249,26 +249,28 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
 
     # Remove offshore buses if not considered
     if not add_offshore:
-        buses = buses.loc[buses['onshore']]
+        buses = buses.dropna(subset=["onshore_region"])
 
     if countries is not None:
         # In e-highway, GB is referenced as UK
         iso_to_ehighway = {"GB": "UK"}
         ehighway_countries = [iso_to_ehighway[c] if c in iso_to_ehighway else c for c in countries]
 
-        # Remove onshore buses that are not in the considered region, keep also buses that are offshore
+        # Remove onshore buses that are not in the considered region,
+        # keep also buses that are offshore (i.e. with a country name that is not a string)
         def filter_buses(bus):
-            return not bus.onshore or bus.name[2:] in ehighway_countries
+            return (not isinstance(bus.country, str)) or (bus.name[2:] in ehighway_countries)
         buses = buses.loc[buses.apply(filter_buses, axis=1)]
     else:
-        countries = replace_iso2_codes(list(set([idx[2:] for idx in buses.index if buses.loc[idx, "onshore"]])))
+        countries = replace_iso2_codes(list(set([idx[2:] for idx in buses.dropna(subset=["onshore_region"]).index])))
 
     # Converting polygons strings to Polygon object
-    regions = buses.region.values
-    # Convert strings
-    for i, region in enumerate(regions):
-        if isinstance(region, str):
-            regions[i] = shapely.wkt.loads(region)
+    for region_type in ["onshore_region", "offshore_region"]:
+        regions = buses[region_type].values
+        # Convert strings
+        for i, region in enumerate(regions):
+            if isinstance(region, str):
+                regions[i] = shapely.wkt.loads(region)
 
     # Remove lines for which one of the two end buses has been removed
     lines = pd.DataFrame(lines.loc[lines.bus0.isin(buses.index) & lines.bus1.isin(buses.index)])
@@ -283,9 +285,10 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
         offshore_shapes = get_shapes(countries, which='offshore', save=True)["geometry"]
         if len(offshore_shapes) != 0:
             offshore_zones_shape = unary_union(offshore_shapes.values)
-            offshore_buses = buses[~buses.onshore]
+            offshore_bus_indexes = buses[buses["onshore_region"].isnull()].index
+            offshore_buses = buses.loc[offshore_bus_indexes]
             # Use a home-made 'voronoi' partition to assign a region to each offshore bus
-            buses.loc[~buses.onshore, "region"] = voronoi_special(offshore_zones_shape, offshore_buses[["x", "y"]])
+            buses.loc[offshore_bus_indexes, "offshore_region"] = voronoi_special(offshore_zones_shape, offshore_buses[["x", "y"]])
 
     # Setting line parameters
     """ For DC-opf

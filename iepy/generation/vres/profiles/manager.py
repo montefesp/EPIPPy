@@ -38,11 +38,12 @@ def read_resource_database(spatial_resolution: float) -> xr.Dataset:
     """
 
     main_resource_dir = f"{data_path}generation/vres/profiles/source/ERA5/"
-    available_res = sorted([float(res) for res in  listdir(main_resource_dir)])
+    available_res = sorted([float(res) for res in listdir(main_resource_dir)])
     # Find the dataset with the least precise resolution that can accommodate the desired resolution
     dataset_resolution = None
+    # TODO: tis doesn't work if the smaller resolution directory doesn't contain the appropriate region
     for spatial_res in available_res:
-        if int(spatial_resolution*1e6)%int(spatial_res*1e6) == 0:
+        if int(spatial_resolution*1e6) % int(spatial_res*1e6) == 0:
             dataset_resolution = spatial_res
     assert dataset_resolution is not None, f"Error: Given resolution {spatial_resolution} is not a multiplier of one" \
                                            f" of the available resolutions {available_res}"
@@ -70,7 +71,6 @@ def read_resource_database(spatial_resolution: float) -> xr.Dataset:
     # Concatenate all regions on locations.
     dataset = xr.concat(datasets, dim='locations')
     # Removing duplicates potentially there from previous concat of multiple regions.
-    # TODO: deal with performannce warning
     _, index = np.unique(dataset['locations'], return_index=True)
     dataset = dataset.isel(locations=index)
     # dataset = dataset.sel(locations=~dataset.indexes['locations'].duplicated(keep='first'))
@@ -211,7 +211,6 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
             converter = converters_dict[tech]["converter"]
 
             # Get irradiance in W from J
-            # TODO: getting NANs here... and not always the same number
             irradiance = sub_dataset.ssrd / 3600.
             # Get temperature in C from K
             temperature = sub_dataset.t2m - 273.15
@@ -295,6 +294,7 @@ def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd
             missing_countries = sorted(list(missing_countries))
             which = 'onshore' if get_config_values(tech, ["onshore"]) else 'offshore'
             shapes_df = get_shapes(missing_countries, which=which)
+            # TODO: weird userwarning happening on Iceland
             centroids = shapes_df["geometry"].centroid
             points = [(round(p.x / spatial_res) * spatial_res, round(p.y / spatial_res) * spatial_res)
                       for p in centroids]

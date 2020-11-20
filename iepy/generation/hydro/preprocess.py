@@ -361,7 +361,7 @@ def compute_storage_capacities(sto_capacity_ds: pd.Series) -> pd.Series:
          DataFrame containing STO energy storage ratings.
 
     """
-    source_dir = f"{data_path}hydro/source/"
+    source_dir = f"{data_path}generation/hydro/source/"
     # Initially reading modelled data from Hartel et. al (2017)
     hydro_storage_capacities_fn = f"{source_dir}Hartel_2017_EU_hydro_storage_capacities.xlsx"
     hydro_storage_energy_cap_ds = pd.read_excel(hydro_storage_capacities_fn, skiprows=1,
@@ -622,7 +622,7 @@ def generate_eu_hydro_files(resolution: float, topology_unit: str,
     sto_inflows_df = sto_inflows_df[capacities_df['STO_CAP [GW]'].dropna().index]
 
     # Saving files
-    save_dir = f"{data_path}hydro/generated/"
+    save_dir = f"{data_path}generation/hydro/generated/"
     capacities_df.to_csv(f"{save_dir}hydro_capacities_per_{topology_unit}.csv")
     ror_inflows_df.to_csv(f"{save_dir}hydro_ror_time_series_per_{topology_unit}_pu.csv")
     sto_inflows_df.to_csv(f"{save_dir}hydro_sto_inflow_time_series_per_{topology_unit}_GWh.csv")
@@ -632,10 +632,10 @@ def generate_eu_hydro_files(resolution: float, topology_unit: str,
 
 if __name__ == '__main__':
 
-    nuts_type_ = 'NUTS3'
+    nuts_type_ = 'countries'
     resolution_ = 0.5  # 0.28125
 
-    start = datetime(2018, 1, 1, 0, 0, 0)
+    start = datetime(2014, 1, 1, 0, 0, 0)
     end = datetime(2018, 12, 31, 23, 0, 0)
     timestamps_ = pd.date_range(start, end, freq='H')
 

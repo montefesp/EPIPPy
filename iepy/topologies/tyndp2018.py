@@ -38,7 +38,7 @@ def preprocess(plotting=True) -> None:
                           names=["link", "in", "out"])
 
     # Get NTC as the minimum capacity between the two flow directions.
-    #links["NTC"] = links[["in", "out"]].min(axis=1)
+    # links["NTC"] = links[["in", "out"]].min(axis=1)
     # TODO: warning this changed
     links["NTC"] = links[["in", "out"]].max(axis=1)
     links["bus0"] = links.index.str[:2]
@@ -61,6 +61,7 @@ def preprocess(plotting=True) -> None:
               'IT-ME', 'IT-MT', 'IT-TN', 'LT-SE', 'PL-SE', 'NL-NO'}
     links["carrier"] = links["id"].apply(lambda x: 'DC' if x in dc_set else 'AC')
     # A connection between Rep. of Ireland (IE) and Northern Ireland (NI) is considered in the TYNDP, yet as NI is the
+    # TODO: this is north ireland --> need to add it to the capacity between IE-GB
     # ISO2 code of Nicaragua, this results in weird results. Thus, the connection is dropped, as IE-GB links exist.
     links = links[~links.index.str.contains("NI")]
 
@@ -69,15 +70,25 @@ def preprocess(plotting=True) -> None:
     for name in links.index:
         buses_names += name.split("-")
     buses_names = sorted(list(set(buses_names)))
-    buses = pd.DataFrame(index=buses_names, columns=["x", "y", "country", "region", "onshore"])
+    # buses = pd.DataFrame(index=buses_names, columns=["x", "y", "country", "region", "onshore"])
+    buses = pd.DataFrame(index=buses_names, columns=["x", "y", "country", "onshore_region", "offshore_region"])
     buses.index.names = ["id"]
     buses.country = list(buses.index)
-    buses.onshore = True
+    # buses.onshore = True
 
     # Get shape of each country
-    buses.region = get_shapes(buses.index.values, which='onshore', save=True)["geometry"]
+    # buses.region = get_shapes(buses.index.values, which='onshore', save=True)["geometry"]
+    shapes = get_shapes(buses.index.values, save=True)
+    # Crop regions going too far north
+    nordics = ["FI", "NO", "SE"]
+    intersection_poly = Polygon([(0., 50.), (0., 66.5), (40., 66.5), (40., 50.)])
+    shapes.loc[nordics, "geometry"] = shapes.loc[nordics, "geometry"].apply(lambda x: x.intersection(intersection_poly))
+    # Add regions to buses
+    buses.onshore_region = shapes[~shapes.offshore]["geometry"]
+    offshore_shapes = shapes[shapes.offshore]["geometry"]
+    buses.loc[offshore_shapes.index, "offshore_region"] = offshore_shapes
 
-    centroids = [region.centroid for region in buses.region]
+    centroids = [region.centroid for region in buses.onshore_region]
     buses.x = [c.x for c in centroids]
     buses.y = [c.y for c in centroids]
 
@@ -120,12 +131,14 @@ def preprocess(plotting=True) -> None:
         plot_topology(buses, links)
         plt.show()
 
-    buses.region = buses.region.astype(str)
+    # buses.region = buses.region.astype(str)
+    buses.onshore_region = buses.onshore_region.astype(str)
+    buses.offshore_region = buses.offshore_region.astype(str)
     buses.to_csv(f"{generated_dir}buses.csv")
     links.to_csv(f"{generated_dir}links.csv")
 
 
-def get_topology(network: pypsa.Network, countries: List[str] = None, add_offshore: bool = False,
+def get_topology(network: pypsa.Network, countries: List[str] = None,
                  extend_line_cap: bool = True, extension_multiplier: float = None, use_ex_line_cap: bool = True,
                  plot: bool = False) -> pypsa.Network:
     """
@@ -137,8 +150,6 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
         Network instance
     countries: List[str] (default: None)
         List of ISO codes of countries for which we want the tyndp topology.
-    add_offshore: bool (default: False)
-        Whether to include offshore nodes
     extend_line_cap: bool (default: True)
         Whether line capacity is allowed to be expanded
     extension_multiplier: float (default: 1.)
@@ -165,27 +176,21 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
     assert isfile(links_fn), f"Error: Links are undefined. Please run 'preprocess'."
     links = pd.read_csv(links_fn, index_col='id')
 
-    # Remove offshore buses if not considered
-    if not add_offshore:
-        buses = buses.loc[buses['onshore']]
-
     if countries is not None:
         # Check if there is a bus for each country considered
         missing_countries = set(countries) - set(buses.index)
         assert not missing_countries, f"Error: No buses exist for the following countries: {missing_countries}"
-
-        # Remove onshore buses that are not in the considered countries, keep also buses that are offshore
-        def filter_buses(bus):
-            return not bus.onshore or bus.name in countries
-        buses = buses.loc[buses.apply(filter_buses, axis=1)]
+        # Remove buses that are not associated with the considered countries
+        buses = buses.loc[buses.index.isin(countries)]
     countries = buses.index
 
     # Converting polygons strings to Polygon object
-    regions = buses.region.values
-    # Convert strings
-    for i, region in enumerate(regions):
-        if isinstance(region, str):
-            regions[i] = shapely.wkt.loads(region)
+    for region_type in ["onshore_region", "offshore_region"]:
+        regions = buses[region_type].values
+        # Convert strings
+        for i, region in enumerate(regions):
+            if isinstance(region, str):
+                regions[i] = shapely.wkt.loads(region)
 
     # If we have only one bus, add it to the network and return
     if len(buses) == 1:

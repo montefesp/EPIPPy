@@ -340,7 +340,6 @@ def get_capacity_potential_per_country(countries: List[str], is_onshore: float, 
 
 
 if __name__ == '__main__':
-    from iepy.geographics import get_shapes
     from iepy.technologies import get_config_values
     filters_ = get_config_values("wind_onshore_national", ["filters"])
     print(filters_)
