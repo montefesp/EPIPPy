@@ -34,13 +34,14 @@ def preprocess(plotting=True) -> None:
     # Create links
     link_data_fn = f"{data_path}topologies/tyndp2018/source/Input Data.xlsx"
     # Read TYNDP2018 (NTC 2027, reference grid) data
-    links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2], usecols=[0, 3, 4],
-                          names=["link", "in", "out"])
+    links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2], usecols=[0, 3, 4, 9, 10],
+                          names=["link", "in", "out", "p_nom_max_in", "p_nom_max_out"])
 
     # Get NTC as the minimum capacity between the two flow directions.
     # links["NTC"] = links[["in", "out"]].min(axis=1)
     # TODO: warning this changed
     links["NTC"] = links[["in", "out"]].max(axis=1)
+    links["NTC_max"] = links[["p_nom_max_in", "p_nom_max_out"]].max(axis=1)
     links["bus0"] = links.index.str[:2]
     links["bus1"] = [i[1][:2] for i in links.index.str.split('-')]
 
@@ -48,9 +49,8 @@ def preprocess(plotting=True) -> None:
     links_crossborder = links[links["bus0"] != links["bus1"]].copy()
     links_crossborder["id"] = links_crossborder["bus0"] + '-' + links_crossborder["bus1"]
     # Sum all capacities belonging to the same border and convert from MW to GW.
-    links = links_crossborder.groupby("id")["NTC"].sum() / 1000.
+    links = links_crossborder.groupby("id")[["NTC", "NTC_max"]].sum() / 1000.
 
-    links = links.to_frame("p_nom")
     links["id"] = links.index.values
     links["bus0"] = links["id"].apply(lambda k: k.split('-')[0])
     links["bus1"] = links["id"].apply(lambda k: k.split('-')[1])
@@ -213,7 +213,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
     links['p_min_pu'] = -1.  # Making the link bi-directional
     links['p_nom_extendable'] = extend_line_cap
     if extend_line_cap and extension_multiplier is not None:
-        links['p_nom_max'] = links['p_nom']*extension_multiplier
+        links['p_nom_max'] = links['NTC_max']*extension_multiplier
     links['capital_cost'] = pd.Series(index=links.index)
     for idx in links.index:
         carrier = links.loc[idx].carrier

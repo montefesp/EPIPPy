@@ -1,4 +1,5 @@
 from typing import List, Optional
+from unidecode import unidecode
 
 import geopandas as gpd
 import pandas as pd
@@ -73,6 +74,7 @@ def get_powerplants(tech_name: str, country_codes: List[str]) -> pd.DataFrame:
     # Filter out plants in countries with additional constraints (e.g., nuclear decommissioning in DE)
     if 'countries_out' in tech_config:
         pp_df = pp_df[~pp_df['ISO2'].isin(tech_config['countries_out'])]
+    pp_df['Name'] = pp_df['Name'].apply(unidecode)
 
     return pp_df[['Name', 'Capacity', 'ISO2', 'lon', 'lat']]
 
