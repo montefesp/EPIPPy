@@ -40,8 +40,8 @@ def preprocess(plotting=True) -> None:
     # Get NTC as the minimum capacity between the two flow directions.
     # links["NTC"] = links[["in", "out"]].min(axis=1)
     # TODO: warning this changed
-    links["NTC"] = links[["in", "out"]].max(axis=1)
-    links["NTC_max"] = links[["p_nom_max_in", "p_nom_max_out"]].max(axis=1)
+    links["p_nom"] = links[["in", "out"]].max(axis=1)
+    links["p_nom_max"] = links[["p_nom_max_in", "p_nom_max_out"]].max(axis=1)
     links["bus0"] = links.index.str[:2]
     links["bus1"] = [i[1][:2] for i in links.index.str.split('-')]
 
@@ -49,7 +49,7 @@ def preprocess(plotting=True) -> None:
     links_crossborder = links[links["bus0"] != links["bus1"]].copy()
     links_crossborder["id"] = links_crossborder["bus0"] + '-' + links_crossborder["bus1"]
     # Sum all capacities belonging to the same border and convert from MW to GW.
-    links = links_crossborder.groupby("id")[["NTC", "NTC_max"]].sum() / 1000.
+    links = links_crossborder.groupby("id")[["p_nom", "p_nom_max"]].sum() / 1000.
 
     links["id"] = links.index.values
     links["bus0"] = links["id"].apply(lambda k: k.split('-')[0])
@@ -139,7 +139,7 @@ def preprocess(plotting=True) -> None:
 
 
 def get_topology(network: pypsa.Network, countries: List[str] = None,
-                 extend_line_cap: bool = True, extension_multiplier: float = None, use_ex_line_cap: bool = True,
+                 p_nom_extendable: bool = True, extension_multiplier: float = None, use_ex_line_cap: bool = True,
                  plot: bool = False) -> pypsa.Network:
     """
     Load the e-highway network topology (buses and links) using PyPSA.
@@ -150,10 +150,10 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
         Network instance
     countries: List[str] (default: None)
         List of ISO codes of countries for which we want the tyndp topology.
-    extend_line_cap: bool (default: True)
+    p_nom_extendable: bool (default: True)
         Whether line capacity is allowed to be expanded
-    extension_multiplier: float (default: 1.)
-        By how much the capacity can be extended if extendable
+    extension_multiplier: float (default: None)
+        By how much the capacity can be extended if extendable. If None, no limit on expansion.
     use_ex_line_cap: bool (default True)
         Whether to use existing line capacity
     plot: bool (default: False)
@@ -211,9 +211,9 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
         links['p_nom'] = 0
     links['p_nom_min'] = links['p_nom']
     links['p_min_pu'] = -1.  # Making the link bi-directional
-    links['p_nom_extendable'] = extend_line_cap
-    if extend_line_cap and extension_multiplier is not None:
-        links['p_nom_max'] = links['NTC_max']*extension_multiplier
+    links['p_nom_extendable'] = p_nom_extendable
+    if p_nom_extendable and extension_multiplier is not None:
+        links['p_nom_max'] = (links['p_nom_max']*extension_multiplier).round(3)
     links['capital_cost'] = pd.Series(index=links.index)
     for idx in links.index:
         carrier = links.loc[idx].carrier
