@@ -14,7 +14,7 @@ from iepy import data_path
 
 
 def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.Series, countries: List[str],
-                                                 spatial_res: float, min_year_threshold: float = 2010,
+                                                 spatial_res: float, include_operating: bool,
                                                  match_distance: float = 50., raise_error: bool = True) -> pd.Series:
     """
     Return the total existing capacity (in GW) for the given tech for a set of geographical regions.
@@ -31,8 +31,8 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         List of ISO codes of countries in which the regions are situated
     spatial_res: float
         Spatial resolution of data
-    min_year_threshold: float
-        Minimum year threshold (plants commissioned before this year are not considered).
+    include_operating: bool
+        Include or not the legacy capacity of already operating units.
     match_distance: float (default: 50)
         Distance threshold (in km) used when associating points to shape.
     raise_error: bool (default: True)
@@ -58,13 +58,12 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
             data = pd.read_excel(f"{path_legacy_data}Windfarms_Europe_20200127.xls", sheet_name='Windfarms',
                                  header=0, usecols=[2, 5, 9, 10, 18, 22, 23], skiprows=[1], na_values='#ND')
             data = data.dropna(subset=['Latitude', 'Longitude', 'Total power'])
-            data['Commissioning'] = data['Commissioning date'].astype(str).str[:4]
-            # Replace NaN (future plants with unknown commissioning year) with a large number, e.g., (year) 2099
-            data['Commissioning'].replace('nan', 2099., inplace=True)
-            data['Commissioning'] = data['Commissioning'].astype(float)
 
-            data = data[data['Status'] != 'Dismantled']
-            data = data[data['Commissioning'] > min_year_threshold]
+            if include_operating:
+                plant_status = ['Planned', 'Approved', 'Construction', 'Production']
+            else:
+                plant_status = ['Planned', 'Approved', 'Construction']
+            data = data.loc[data['Status'].isin(plant_status)]
 
             if countries is not None:
                 data = data[data['ISO code'].isin(countries)]
@@ -88,19 +87,19 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         else:  # plant == "PV":
 
             data = pd.read_excel(f"{path_legacy_data}Solarfarms_Europe_20200208.xlsx", sheet_name='ProjReg_rpt',
-                                 header=0, usecols=[0, 4, 6, 8])
+                                 header=0, usecols=[0, 4, 5, 6, 8])
             data = data[pd.notnull(data['Coords'])]
+
+            if include_operating:
+                plant_status = ['Building', 'Planned', 'Active']
+            else:
+                plant_status = ['Building', 'Planned']
+            data = data.loc[data['Status'].isin(plant_status)]
+
             data["Location"] = data["Coords"].apply(lambda x: (float(x.split(',')[1]), float(x.split(',')[0])))
             if countries is not None:
                 data['Country'] = convert_country_codes(data['Country'].values, 'name', 'alpha_2')
                 data = data[data['Country'].isin(countries)]
-
-            data_year = '20' + data['COD'].astype(str).str[-2:]
-            # Replace NaN (future plants with unknown commissioning year) with a large number, e.g., (year) 2099
-            data_year[data_year.str.contains('an')] = '2099'
-            data['Commissioning'] = data_year.astype(float)
-
-            data = data[data['Commissioning'] > min_year_threshold]
 
             if len(data) == 0:
                 return capacities
@@ -172,10 +171,10 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         else:
             warnings.warn(f"Warning: No legacy data exists for tech {tech}.")
 
-    return capacities
+    return capacities.astype(float)
 
 
-def aggregate_legacy_capacity(spatial_resolution: float):
+def aggregate_legacy_capacity(spatial_resolution: float, include_operating: bool):
     """
     Aggregate legacy data at a given spatial resolution.
 
@@ -183,6 +182,8 @@ def aggregate_legacy_capacity(spatial_resolution: float):
     ----------
     spatial_resolution: float
         Spatial resolution at which we want to aggregate.
+    include_operating: bool
+        Whether to include already operating plants or not.
 
     """
 
@@ -211,16 +212,21 @@ def aggregate_legacy_capacity(spatial_resolution: float):
         # Get capacity in each grid cell
         capacities_per_country_ds = pd.Series(index=grid_cells_ds.index, name="Capacity (GW)", dtype=float)
         for tech in technologies_in_country:
+
+            idx = capacities_per_country_ds[tech].index
             if tech == 'pv_residential':
-                capacities_per_country_ds[tech] = \
+                capacities_per_country_and_tech = \
                     get_legacy_capacity_in_regions_from_non_open(tech, grid_cells_ds.loc[tech], [country],
-                                                                 spatial_resolution,
-                                                                 min_year_threshold=2010, match_distance=100)
+                                                                 spatial_resolution, include_operating,
+                                                                 match_distance=100)
             else:
-                capacities_per_country_ds[tech] = \
+                capacities_per_country_and_tech = \
                     get_legacy_capacity_in_regions_from_non_open(tech, grid_cells_ds.loc[tech].reset_index()[0],
-                                                                 [country], spatial_resolution,
-                                                                 min_year_threshold=2010, match_distance=100)
+                                                                 [country], spatial_resolution, include_operating,
+                                                                 match_distance=100)
+            capacities_per_country_and_tech.index = idx
+            capacities_per_country_ds[tech].update(capacities_per_country_and_tech)
+
         capacities_per_country_df = capacities_per_country_ds.to_frame()
         capacities_per_country_df.loc[:, "ISO2"] = country
         capacities_df_ls += [capacities_per_country_df]
@@ -243,7 +249,7 @@ def aggregate_legacy_capacity(spatial_resolution: float):
 
 if __name__ == '__main__':
 
-    aggregate_legacy_capacity(0.25)
+    aggregate_legacy_capacity(spatial_resolution=0.25, include_operating=True)
 
     # technologies = ["pv_residential"]
     # spatial_res = 1.0
