@@ -219,6 +219,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
         carrier = links.loc[idx].carrier
         cap_cost, _ = get_costs(carrier, len(network.snapshots))
         links.loc[idx, ('capital_cost', )] = cap_cost * links.length.loc[idx]
+    links['p_nom_max'] = links[['p_nom_max', 'p_nom_min']].max(axis=1)
 
     network.import_components_from_dataframe(buses, "Bus")
     network.import_components_from_dataframe(links, "Link")
