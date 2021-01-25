@@ -3,6 +3,7 @@ from os import listdir
 from typing import List, Dict, Union, Any
 from ast import literal_eval
 import yaml
+from time import strftime
 
 import numpy as np
 import pandas as pd
@@ -16,6 +17,9 @@ import progressbar as pgb
 
 import shapely.wkt
 from shapely.geometry import Polygon, MultiPolygon
+
+import hashlib
+import pickle
 
 from iepy.geographics import get_shapes
 from iepy import data_path
@@ -270,17 +274,49 @@ def get_land_availability_for_shapes(shapes: List[Union[Polygon, MultiPolygon]],
 
     Returns
     -------
-    np.array
+    available_land: np.array
         Land availability (in km2) for each shape
 
     """
 
     assert len(shapes) != 0, "Error: List of shapes is empty."
 
+    # Check if availability has already been computed for the input shapes and filters
+    save_dir = f"{data_path}/generation/vres/potentials/generated/GLAES/available_areas/"
+    shapes_str = "".join([shapely.wkt.dumps(shape) for shape in shapes])
+    shapes_hash = hashlib.sha224(bytes(shapes_str, 'utf-8')).hexdigest()
+
+    # Get all the dictionaries and see if they match with the inputs
+    dict_files = [fn for fn in listdir(save_dir) if fn.endswith(".pkl")]
+    for fn in dict_files:
+        with open(f"{save_dir}{fn}", "rb") as f:
+            filters_dict = pickle.load(f)
+            equal = True
+            equal &= filters_dict["shapes_hash"] == shapes_hash
+            # Check dictionary have the same keys
+            saved_keys = set(filters_dict.keys()) - {"shapes_hash"}
+            equal &= len(set(filters.keys()).symmetric_difference(saved_keys)) == 0
+            # Check the values are the same
+            for key in filters:
+                equal &= (key in filters_dict) and (filters[key] == filters_dict[key])
+            # If a dictionary matches return the corresponding land availability
+            if equal:
+                return np.load(f"{save_dir}{fn.split('.')[0]}.npy")
+
+    # Compute land availability
     if processes == 1:
-        return get_land_availability_for_shapes_non_mp(shapes, filters)
+        available_land = get_land_availability_for_shapes_non_mp(shapes, filters)
     else:
-        return get_land_availability_for_shapes_mp(shapes, filters, processes)
+        available_land = get_land_availability_for_shapes_mp(shapes, filters, processes)
+
+    # Save input and output data
+    filters["shapes_hash"] = shapes_hash
+    str_time = strftime('%Y%m%d_%H%M%S')
+    np.save(f"{save_dir}{str_time}.npy", available_land)
+    with open(f"{save_dir}{str_time}.pkl", "wb") as f:
+        pickle.dump(filters, f)
+
+    return available_land
 
 
 def get_capacity_potential_for_shapes(shapes: List[Union[Polygon, MultiPolygon]], filters: Dict,
@@ -344,7 +380,7 @@ if __name__ == '__main__':
     filters_ = get_config_values("wind_onshore_national", ["filters"])
     print(filters_)
     # filters_ = {"depth_thresholds": {"high": -200, "low": None}}
-    full_gl_shape = get_shapes(["DE"], "onshore")["geometry"][0]
-    filters_ = {"glaes_priors": {"": (None, 500)}}
+    full_gl_shape = get_shapes(["LU"], "onshore")["geometry"].values
+    filters_ = {"natura": 1}
     # trunc_gl_shape = full_gl_shape.intersection(Polygon([(11.5, 52.5), (11.5, 53.5), (12.5, 53.5), (12.5, 52.5)]))
-    print(get_capacity_potential_for_shapes([full_gl_shape], filters_, 5))
+    print(get_capacity_potential_for_shapes(full_gl_shape, filters_, 5))
