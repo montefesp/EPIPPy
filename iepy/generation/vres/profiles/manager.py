@@ -138,7 +138,13 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
     for tech in tech_points_dict.keys():
 
         resource = get_config_values(tech, ["plant"])
-        sub_dataset = dataset.sel(locations=sorted(tech_points_dict[tech]))
+        # Round points at the given resolution
+        non_rounded_points = tech_points_dict[tech]
+        rounded_points = [(round(point[0] / spatial_res) * spatial_res,
+                           round(point[1] / spatial_res) * spatial_res)
+                          for point in non_rounded_points]
+        non_rounded_to_rounded_dict = dict(zip(non_rounded_points, rounded_points))
+        sub_dataset = dataset.sel(locations=sorted(list(set(rounded_points))))
 
         if resource == 'Wind':
 
@@ -199,8 +205,12 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
                                                      wind_speed_references,
                                                      capacity_factor_references_pu).compute()
 
-                    tech_points_tuples = [(tech, lon, lat) for lon, lat in coords_classes]
-                    cap_factor_df.loc[:, tech_points_tuples] = np.array(power_output)
+                    # Convert rounded point back into non rounded points
+                    power_output_df = pd.DataFrame(power_output, columns=coords_classes)
+                    coords_classes_non_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
+                    power_output_corrected = [power_output_df[point].values for point in coords_classes_non_rounded]
+                    tech_points_tuples = [(tech, lon, lat) for lon, lat in non_rounded_points]
+                    cap_factor_df.loc[:, tech_points_tuples] = np.array(power_output_corrected).T
 
                 else:
 
@@ -225,7 +235,11 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
 
             power_output = np.array(power_output)
 
-            cap_factor_df[tech] = power_output
+            # Convert rounded point back into non rounded points
+            power_output_df = pd.DataFrame(power_output, columns=sub_dataset.locations.values.tolist())
+            coords_classes_non_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
+            power_output_corrected = [power_output_df[point].values for point in coords_classes_non_rounded]
+            cap_factor_df[tech] = np.array(power_output_corrected).T
 
         else:
             raise ValueError(' Profiles for the specified resource is not available yet.')
