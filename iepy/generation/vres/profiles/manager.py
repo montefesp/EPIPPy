@@ -158,6 +158,7 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
 
             # Split according to the IEC 61400 WTG classes
             wind_classes = {'IV': [0., 6.5], 'III': [6.5, 8.], 'II': [8., 9.5], 'I': [9.5, 99.]}
+            list_df_per_wind_class = []
 
             for cls in wind_classes:
 
@@ -205,16 +206,25 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
                                                      wind_speed_references,
                                                      capacity_factor_references_pu).compute()
 
-                    # Convert rounded point back into non rounded points
+                    # Convert rounded point back into non-rounded points
                     power_output_df = pd.DataFrame(power_output, columns=coords_classes)
-                    coords_classes_non_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
-                    power_output_corrected = [power_output_df[point].values for point in coords_classes_non_rounded]
-                    tech_points_tuples = [(tech, lon, lat) for lon, lat in non_rounded_points]
-                    cap_factor_df.loc[:, tech_points_tuples] = np.array(power_output_corrected).T
+                    coords_classes_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
+                    power_output_corrected = [power_output_df[point].values
+                                              for point in coords_classes_rounded
+                                              if point in power_output_df.columns]
+                    coords_classes_non_rounded = [point for point in non_rounded_to_rounded_dict
+                                                  if non_rounded_to_rounded_dict[point] in power_output_df.columns]
+                    tech_points_tuples = [(tech, lon, lat) for lon, lat in coords_classes_non_rounded]
+                    df_per_wind_class = pd.DataFrame(np.array(power_output_corrected).T,
+                                                     index=timestamps, columns=tech_points_tuples)
+                    list_df_per_wind_class.append(df_per_wind_class)
 
                 else:
 
                     continue
+
+            cap_factor_df_concat = pd.concat(list_df_per_wind_class, axis=1)
+            cap_factor_df = cap_factor_df_concat.reindex(columns=cap_factor_df.columns)
 
         elif resource == 'PV':
 
@@ -237,15 +247,16 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
 
             # Convert rounded point back into non rounded points
             power_output_df = pd.DataFrame(power_output, columns=sub_dataset.locations.values.tolist())
-            coords_classes_non_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
-            power_output_corrected = [power_output_df[point].values for point in coords_classes_non_rounded]
+            coords_classes_rounded = [non_rounded_to_rounded_dict[point] for point in non_rounded_points]
+            power_output_corrected = [power_output_df[point].values
+                                      for point in coords_classes_rounded if point in power_output_df.columns]
             cap_factor_df[tech] = np.array(power_output_corrected).T
 
         else:
             raise ValueError(' Profiles for the specified resource is not available yet.')
 
     # Check that we do not have NANs
-    assert cap_factor_df.isna().to_numpy().sum() == 0, "Error: Some capacity factors are not available."
+    assert cap_factor_df.isna().to_numpy().sum() == 0, "Some capacity factors are not available."
 
     # Decrease precision of capacity factors
     cap_factor_df = cap_factor_df.round(3)

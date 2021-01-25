@@ -9,8 +9,8 @@ from shapely.geometry import Polygon, MultiPolygon, GeometryCollection
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cf
-from vresutils.graph import voronoi_partition_pts
 
+from iepy.geographics.points import voronoi_partition
 from iepy.geographics import get_points_in_shape
 from iepy.geographics.plot import display_polygons
 from iepy.technologies import get_config_dict
@@ -25,7 +25,7 @@ def plot_grid_cells(grid_cells_ds: pd.Series, show=False):
 
     land_50m = cf.NaturalEarthFeature('physical', 'land', '50m',
                                       edgecolor='darkgrey',
-                                      facecolor=cf.COLORS['land_alt1'])
+                                      facecolor='white')
 
     axes = []
     for tech in set(grid_cells_ds.index.get_level_values(0)):
@@ -48,23 +48,21 @@ def create_grid_cells(shape: Union[Polygon, MultiPolygon], resolution: float) \
     """Divide a geographical shape by applying voronoi partition."""
 
     points = get_points_in_shape(shape, resolution)
-    if len(points) == 0:
-        logger.warning("WARNING: No points at given resolution falls into shape.")
-        return points, []
-    grid_cells = voronoi_partition_pts(points, shape)
+    if not points:
+        return [(shape.centroid.x, shape.centroid.y)], np.array([unary_union(shape)])
 
+    grid_cells = voronoi_partition(points, shape, resolution)
     # Keep only Polygons and MultiPolygons
     for i, shape in enumerate(grid_cells):
         if isinstance(shape, GeometryCollection):
             geos = [geo for geo in shape if isinstance(geo, Polygon) or isinstance(geo, MultiPolygon)]
             grid_cells[i] = unary_union(geos)
-
     return points, grid_cells
 
 
 def get_grid_cells(technologies: List[str], resolution: float,
-                   onshore_shape: Union[Polygon, MultiPolygon] = None,
-                   offshore_shape: Union[Polygon, MultiPolygon] = None) -> pd.Series:
+                   onshore_shape: pd.Series = None,
+                   offshore_shape: pd.Series = None) -> pd.Series:
     """
     Divide shapes in grid cell for a list of technologies.
 
@@ -74,9 +72,9 @@ def get_grid_cells(technologies: List[str], resolution: float,
         List of technologies for which we want to generate grid cells.
     resolution: float
         Spatial resolution at which the grid cells must be defined.
-    onshore_shape: Union[Polygon, MultiPolygon] (default: None)
+    onshore_shape: pd.Series (default: None)
         Onshore geographical scope.
-    offshore_shape: Union[Polygon, MultiPolygon] (default: None)
+    offshore_shape: pd.Series (default: None)
         Offshore geographical scope.
 
     Returns
@@ -97,16 +95,31 @@ def get_grid_cells(technologies: List[str], resolution: float,
         is_onshore = tech_config[tech]["onshore"]
         shape = onshore_shape if is_onshore else offshore_shape
         assert shape is not None, f"Error: Missing {'onshore' if is_onshore else 'offshore'} " \
-                                  f"shape for technology {tech}"
+                                  f"shapes for technology {tech}"
 
     # Divide onshore and offshore shapes at a given resolution
-    onshore_points, onshore_grid_cells_shapes = None, None
     # TODO: why is taking ages on onshore shape of EU compared to offshore?
+    onshore_points, onshore_grid_cells_shapes = [], np.array([])
     if onshore_shape is not None:
-        onshore_points, onshore_grid_cells_shapes = create_grid_cells(onshore_shape, resolution)
-    offshore_points, offshore_grid_cells_shapes = None, None
+        for r in onshore_shape.index:
+            union_sh = unary_union(onshore_shape.loc[r])
+            onshore_points_region, onshore_grid_cells_shapes_region = create_grid_cells(union_sh, resolution)
+            if not onshore_points_region:
+                logger.warning(f"No points at given resolution falls into {r} onshore. "
+                               "Taking the centroid of the shape and the shape itself.")
+            onshore_points.extend(onshore_points_region)
+            onshore_grid_cells_shapes = np.append(onshore_grid_cells_shapes, onshore_grid_cells_shapes_region)
+
+    offshore_points, offshore_grid_cells_shapes = [], np.array([])
     if offshore_shape is not None:
-        offshore_points, offshore_grid_cells_shapes = create_grid_cells(offshore_shape, resolution)
+        for r in offshore_shape.index:
+            union_sh = unary_union(offshore_shape.loc[r])
+            offshore_points_region, offshore_grid_cells_shapes_region = create_grid_cells(union_sh, resolution)
+            if not offshore_points_region:
+                logger.warning(f"No points at given resolution falls into {r} offshore. "
+                               "Taking the centroid of the shape and the shape itself.")
+            offshore_points.extend(offshore_points_region)
+            offshore_grid_cells_shapes = np.append(offshore_grid_cells_shapes, offshore_grid_cells_shapes_region)
 
     # Collect onshore and offshore grid cells for each technology
     tech_point_tuples = []
@@ -120,4 +133,22 @@ def get_grid_cells(technologies: List[str], resolution: float,
 
     grid_cells = pd.Series(grid_cells_shapes, index=pd.MultiIndex.from_tuples(tech_point_tuples))
     grid_cells.index.names = ["Technology Name", "Longitude", "Latitude"]
+
     return grid_cells.sort_index()
+
+
+if __name__ == "__main__":
+
+    from iepy.geographics.shapes import get_shapes
+    from iepy.geographics.codes import get_subregions
+    from iepy.geographics.plot import display_polygons
+    from shapely.ops import cascaded_union
+
+    region = get_subregions('EU_BK')
+    shapes = get_shapes(region, which='offshore', save=False)
+
+    # display_polygons(shapes.geometry.values, fill=True, show=True)
+    # points, grid_cells_ds = create_grid_cells(shapes_union, resolution=1.0)
+    grid_cells_ds = get_grid_cells(['wind_offshore'], 0.5, onshore_shape=None, offshore_shape=shapes.geometry.dropna())
+
+    plot_grid_cells(grid_cells_ds, show=True)
