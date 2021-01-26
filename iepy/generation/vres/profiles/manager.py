@@ -214,7 +214,7 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
                                               if point in power_output_df.columns]
                     coords_classes_non_rounded = [point for point in non_rounded_to_rounded_dict
                                                   if non_rounded_to_rounded_dict[point] in power_output_df.columns]
-                    tech_points_tuples = [(tech, lon, lat) for lon, lat in coords_classes_non_rounded]
+                    tech_points_tuples = [(lon, lat) for lon, lat in coords_classes_non_rounded]
                     df_per_wind_class = pd.DataFrame(np.array(power_output_corrected).T,
                                                      index=timestamps, columns=tech_points_tuples)
                     list_df_per_wind_class.append(df_per_wind_class)
@@ -224,7 +224,7 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
                     continue
 
             cap_factor_df_concat = pd.concat(list_df_per_wind_class, axis=1)
-            cap_factor_df = cap_factor_df_concat.reindex(columns=cap_factor_df.columns)
+            cap_factor_df[tech] = cap_factor_df_concat.reindex(sorted(cap_factor_df_concat.columns), axis=1)
 
         elif resource == 'PV':
 
@@ -261,6 +261,7 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
     # Decrease precision of capacity factors
     cap_factor_df = cap_factor_df.round(3)
 
+    print(cap_factor_df.to_string())
     return cap_factor_df
 
 
