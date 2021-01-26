@@ -261,7 +261,6 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
     # Decrease precision of capacity factors
     cap_factor_df = cap_factor_df.round(3)
 
-    print(cap_factor_df.to_string())
     return cap_factor_df
 
 
