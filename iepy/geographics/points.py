@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 from itertools import product
+from scipy.spatial import Voronoi
 
 import shapely
 import shapely.prepared
@@ -168,7 +169,7 @@ def get_points_in_shape(shape: Union[Polygon, MultiPolygon], resolution: float,
         points = list(product(xs, ys))
     points = MultiPoint(points)
     points_in_shape = points.intersection(shape)
-    if points.is_empty:
+    if points_in_shape.is_empty:
         points_in_shape = []
     elif isinstance(points_in_shape, Point):
         points_in_shape = [(points_in_shape.x, points_in_shape.y)]
@@ -176,3 +177,55 @@ def get_points_in_shape(shape: Union[Polygon, MultiPolygon], resolution: float,
         points_in_shape = [(point.x, point.y) for point in points_in_shape]
 
     return points_in_shape
+
+
+def voronoi_partition(points: List[Tuple[float, float]], shape: Union[Polygon, MultiPolygon],
+                      spatial_resolution: float):
+    """
+    Computes the polygons of a Voronoi partition of a given shape. Function adapted from the vresutils package.
+
+    Attributes
+    ----------
+    points : List[Tuple[float, float]]
+    shape : Union[Polygon, MultiPolygon]
+    spatial_resolution : float
+        Spatial resolution of the underlying data
+
+    Returns
+    -------
+    polygons_arr : array of polygon objects
+    """
+
+    points = np.asarray(points)
+
+    if len(points) == 1:
+        polygons = [shape]
+    else:
+        xmin, ymin = np.amin(points, axis=0)
+        xmax, ymax = np.amax(points, axis=0)
+        xspan = max((xmax - xmin), spatial_resolution)
+        yspan = max((ymax - ymin), spatial_resolution)
+
+        # to avoid any network positions outside all Voronoi cells, append
+        # the corners of a rectangle framing these points
+        vor = Voronoi(np.vstack((points,
+                                 [[xmin-3.*xspan, ymin-3.*yspan],
+                                  [xmin-3.*xspan, ymax+3.*yspan],
+                                  [xmax+3.*xspan, ymin-3.*yspan],
+                                  [xmax+3.*xspan, ymax+3.*yspan]])))
+
+        polygons = []
+        for i in range(len(points)):
+            poly = Polygon(vor.vertices[vor.regions[vor.point_region[i]]])
+
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+
+            poly = poly.intersection(shape)
+
+            polygons.append(poly)
+
+    polygons_arr = np.empty((len(polygons),), 'object')
+    polygons_arr[:] = polygons
+
+    return polygons_arr
