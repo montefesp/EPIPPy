@@ -34,6 +34,14 @@ def preprocess(plotting=True) -> None:
     # Create links
     link_data_fn = f"{data_path}topologies/tyndp2018/source/Input Data.xlsx"
     # Read TYNDP2018 (NTC 2027, reference grid) data
+    # TODO: explain here what each column corresponds to
+    #   Why are we using the GCA2040 scenario as upper bound and not sth else?
+    #     - GCA (Global Climate Action): full-speed global decarbonisation, large-scale renewables
+    #     - ST (Sustainable Transition): targets reached by national regulation, emission trading schemes and subsidies,
+    #                                    maximising the use of existing infrastructure
+    #     - DG (Distributed Generation): prosumers at the centre - small-scale generation, batteries and fuel-switching
+    #                                    society engaged and empowered
+    #   Why are we using NTC 2027 as exiting capacity and not 2020?
     links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2], usecols=[0, 3, 4, 9, 10],
                           names=["link", "in", "out", "p_nom_max_in", "p_nom_max_out"])
 
@@ -115,16 +123,12 @@ def preprocess(plotting=True) -> None:
             buses.loc[item, 'x'] = 24.82
             buses.loc[item, 'y'] = 61.06
 
-    # Adding length to the lines
-    links["length"] = pd.Series([0]*len(links.index), index=links.index)
-    for idx in links.index:
-        bus0_id = links.loc[idx]["bus0"]
-        bus1_id = links.loc[idx]["bus1"]
-        bus0_x = buses.loc[bus0_id]["x"]
-        bus0_y = buses.loc[bus0_id]["y"]
-        bus1_x = buses.loc[bus1_id]["x"]
-        bus1_y = buses.loc[bus1_id]["y"]
-        links.loc[idx, "length"] = geopy.distance.geodesic((bus0_y, bus0_x), (bus1_y, bus1_x)).km
+    # Adding length to the links
+    def compute_distance(bus0, bus1):
+        bus0_x, bus0_y = buses.loc[bus0, ['x', 'y']]
+        bus1_x, bus1_y = buses.loc[bus1, ['x', 'y']]
+        return geopy.distance.geodesic((bus0_y, bus0_x), (bus1_y, bus1_x)).km
+    links["length"] = links[['bus0', 'bus1']].apply(lambda x: compute_distance(x.bus0, x.bus1), axis=1)
 
     if plotting:
         from iepy.topologies.core.plot import plot_topology
@@ -140,7 +144,7 @@ def preprocess(plotting=True) -> None:
 
 def get_topology(network: pypsa.Network, countries: List[str] = None,
                  p_nom_extendable: bool = True, extension_multiplier: float = None, use_ex_line_cap: bool = True,
-                 plot: bool = False) -> pypsa.Network:
+                 p_max_pu: float = 1.0, plot: bool = False) -> pypsa.Network:
     """
     Load the e-highway network topology (buses and links) using PyPSA.
 
@@ -156,6 +160,8 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
         By how much the capacity can be extended if extendable. If None, no limit on expansion.
     use_ex_line_cap: bool (default True)
         Whether to use existing line capacity
+    p_max_pu: float (default: 1.0)
+        Maximal dispatch per unit of p_nom
     plot: bool (default: False)
         Whether to show loaded topology or not
 
@@ -210,16 +216,21 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
     if not use_ex_line_cap:
         links['p_nom'] = 0
     links['p_nom_min'] = links['p_nom']
-    links['p_min_pu'] = -1.  # Making the link bi-directional
+    links['p_max_pu'] = p_max_pu
+    links['p_min_pu'] = -p_max_pu  # Making the link bi-directional
     links['p_nom_extendable'] = p_nom_extendable
-    if p_nom_extendable and extension_multiplier is not None:
-        links['p_nom_max'] = (links['p_nom_max']*extension_multiplier).round(3)
+    # TODO: check if those changes make sense
+    if p_nom_extendable:
+        if extension_multiplier is not None:
+            links['p_nom_max'] = (links['p_nom_max']*extension_multiplier).round(3)
+            links['p_nom_max'] = links[['p_nom_max', 'p_nom_min']].max(axis=1)
+        else:
+            links['p_nom_max'] = "inf"
     links['capital_cost'] = pd.Series(index=links.index)
     for idx in links.index:
         carrier = links.loc[idx].carrier
         cap_cost, _ = get_costs(carrier, len(network.snapshots))
         links.loc[idx, ('capital_cost', )] = cap_cost * links.length.loc[idx]
-    links['p_nom_max'] = links[['p_nom_max', 'p_nom_min']].max(axis=1)
 
     network.import_components_from_dataframe(buses, "Bus")
     network.import_components_from_dataframe(links, "Link")
