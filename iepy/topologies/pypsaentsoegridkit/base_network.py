@@ -42,52 +42,51 @@ def get_country(df):
         return pd.Series(np.nan, df.index)
 
 
-def load_buses_from_eg(countries: List[str], voltages: List[float]):
+# def load_buses_from_eg(countries: List[str], voltages: List[float]):
+def load_buses_from_eg():
     """
     TODO: complete
-
-    Parameters
-    ----------
-    countries
-
-    Returns
-    -------
-
     """
 
     buses_fn = f"{data_path}/topologies/pypsa_entsoe_gridkit/source/buses.csv"
     buses_df = pd.read_csv(buses_fn, quotechar="'",
-                        true_values='t', false_values='f',
-                        dtype=dict(bus_id="str"))
+                           true_values='t', false_values='f',
+                           dtype=dict(bus_id="str"))
     buses_df = buses_df.set_index("bus_id").drop(['station_id'], axis=1).rename(columns=dict(voltage='v_nom'))
 
     # Replace dc column by carrier column
     buses_df['carrier'] = buses_df.pop('dc').map({True: 'DC', False: 'AC'})
     buses_df['under_construction'] = buses_df['under_construction'].fillna(False).astype(bool)
 
-    # remove all buses outside of all countries including exclusive economic zones (offshore)
+    print('filtering')
+    # remove all buses outside of europe including exclusive economic zones (offshore)
+    countries = ['AL', 'AT', 'BA', 'BE', 'BG', 'CH', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU',
+                 'IE', 'IT', 'LT', 'LU', 'LV', 'ME', 'MK', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI', 'SK']
     countries_shapes_ds = get_shapes(countries)["geometry"]
     # TODO: what does prep do?
     # europe_shape_prepped = shapely.prepared.prep(europe_shape)
-    all_countries_shape = unary_union(countries_shapes_ds)
+    all_countries_shape = shapely.prepared.prep(unary_union(countries_shapes_ds))
+    print('filtering')
     buses_in_europe_b = buses_df[['x', 'y']].apply(lambda p: all_countries_shape.contains(Point(p)), axis=1)
+    print('filtered')
 
     # Remove all buses which are not at the desired voltage
-    buses_with_v_nom_to_keep_b = buses_df.v_nom.isin(voltages) | buses_df.v_nom.isnull()
-    logger.info("Removing buses with voltages {}"
-                "".format(pd.Index(buses_df.v_nom.unique()).dropna().difference(voltages)))
+    # buses_with_v_nom_to_keep_b = buses_df.v_nom.isin(voltages) | buses_df.v_nom.isnull()
+    # logger.info("Removing buses with voltages {}"
+    #             "".format(pd.Index(buses_df.v_nom.unique()).dropna().difference(voltages)))
 
-    return buses_df.loc[buses_in_europe_b & buses_with_v_nom_to_keep_b]
+    return buses_df[buses_in_europe_b]
+    # return buses_df.loc[buses_in_europe_b & buses_with_v_nom_to_keep_b]
 
 
-def load_links_from_eg(buses_df: pd.DataFrame, links_config: Dict, countries):
+# def load_links_from_eg(buses_df: pd.DataFrame, links_config: Dict, countries):
+def load_links_from_eg(buses_df: pd.DataFrame):
     """
     TODO: complete
 
     Parameters
     ----------
     buses_ids: List[str]
-
 
     Returns
     -------
@@ -105,20 +104,21 @@ def load_links_from_eg(buses_df: pd.DataFrame, links_config: Dict, countries):
     links_df.loc[links_df.bus1 == '6271', 'bus1'] = '6273'
 
     # Remove links not connected to any desired buses
-    links_df= remove_dangling_branches(links_df, buses_df.index)
+    links_df = remove_dangling_branches(links_df, buses_df.index)
 
-    # Add TYNDP links if required
-    if links_config.get('include_tyndp'):
-        buses_df, links_df = add_links_from_tyndp(buses_df, links_df, countries)
+    # Add TYNDP links
+    # if links_config.get('include_tyndp'):
+        # buses_df, links_df = add_links_from_tyndp(buses_df, links_df, countries)
+    buses_df, links_df = add_links_from_tyndp(buses_df, links_df)
 
     # Check whether we have any links left
     if links_df.empty:
         return links_df
 
     # Set p_max_pu
-    p_max_pu = links_config.get('p_max_pu', 1.)
-    links_df['p_max_pu'] = p_max_pu
-    links_df['p_min_pu'] = -p_max_pu
+    # p_max_pu = links_config.get('p_max_pu', 1.)
+    # links_df['p_max_pu'] = p_max_pu
+    # links_df['p_min_pu'] = -p_max_pu
 
     # Add p_nom
     links_df = add_links_p_nom(links_df)
@@ -126,7 +126,8 @@ def load_links_from_eg(buses_df: pd.DataFrame, links_config: Dict, countries):
     return buses_df, links_df
 
 
-def add_links_from_tyndp(buses_df, links_df, countries):
+# def add_links_from_tyndp(buses_df, links_df, countries):
+def add_links_from_tyndp(buses_df, links_df):
     """
 
     TODO: complete
@@ -147,23 +148,23 @@ def add_links_from_tyndp(buses_df, links_df, countries):
     links_tyndp_df = pd.read_csv(links_tyndp_fn)
 
     # Remove all links from list which lie outside all of the desired countries
-    countries_shapes_ds = get_shapes(countries)["geometry"]
+    # countries_shapes_ds = get_shapes(countries)["geometry"]
     # TODO: what does prep do?
     # europe_shape_prepped = shapely.prepared.prep(europe_shape)
-    all_countries_shape = unary_union(countries_shapes_ds)
-    x1y1_in_europe_b = links_tyndp_df[['x1', 'y1']].apply(lambda p: all_countries_shape.contains(Point(p)), axis=1)
-    x2y2_in_europe_b = links_tyndp_df[['x2', 'y2']].apply(lambda p: all_countries_shape.contains(Point(p)), axis=1)
-    is_within_covered_countries_b = x1y1_in_europe_b & x2y2_in_europe_b
+    # all_countries_shape = unary_union(countries_shapes_ds)
+    # x1y1_in_europe_b = links_tyndp_df[['x1', 'y1']].apply(lambda p: all_countries_shape.contains(Point(p)), axis=1)
+    # x2y2_in_europe_b = links_tyndp_df[['x2', 'y2']].apply(lambda p: all_countries_shape.contains(Point(p)), axis=1)
+    # is_within_covered_countries_b = x1y1_in_europe_b & x2y2_in_europe_b
 
     # If not all links are in the desired area, update links_df accordingly
-    if not is_within_covered_countries_b.all():
-        logger.info("TYNDP links outside of the covered area (skipping): " +
-                    ", ".join(links_tyndp_df.loc[~ is_within_covered_countries_b, "Name"]))
-
-        links_tyndp_df = links_tyndp_df.loc[is_within_covered_countries_b]
-        # If none of the links are in the desired area, return the original dataframes
-        if links_tyndp_df.empty:
-            return buses_df, links_df
+    # if not is_within_covered_countries_b.all():
+    #    logger.info("TYNDP links outside of the covered area (skipping): " +
+    #                ", ".join(links_tyndp_df.loc[~ is_within_covered_countries_b, "Name"]))
+    #
+    #    links_tyndp_df = links_tyndp_df.loc[is_within_covered_countries_b]
+    #    # If none of the links are in the desired area, return the original dataframes
+    #    if links_tyndp_df.empty:
+    #        return buses_df, links_df
 
     # Some TYNDP were associated to specific links in advance
     # TODO:
@@ -276,7 +277,8 @@ def add_links_p_nom(links_df: pd.DataFrame):
 
 
 # TODO: could maybe merge this into load_links_from_eg
-def set_links_underwater_fraction(net: pypsa.Network, countries: List[str]):
+# def set_links_underwater_fraction(net: pypsa.Network, countries: List[str]):
+def set_links_underwater_fraction(net: pypsa.Network):
     """
     TODO: complete
 
@@ -297,12 +299,16 @@ def set_links_underwater_fraction(net: pypsa.Network, countries: List[str]):
         net.links['underwater_fraction'] = 0.
     else:
         # TODO: are there links associated to some countries going through other countries eez?
+        countries = ['AL', 'AT', 'BA', 'BE', 'BG', 'CH', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR',
+                     'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'ME', 'MK', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI',
+                     'SK']
         offshore_shape = unary_union(get_shapes(countries, which='offshore')["geometry"])
         links = gpd.GeoSeries(net.links.geometry.dropna().map(shapely.wkt.loads))
         net.links['underwater_fraction'] = links.intersection(offshore_shape).length / links.length
 
 
-def load_converters_from_eg(buses_ids: List[str], links_config: Dict):
+# def load_converters_from_eg(buses_ids: List[str], links_config: Dict):
+def load_converters_from_eg(buses_ids: List[str]):
     """
     TODO: complete
     Parameters
@@ -324,9 +330,9 @@ def load_converters_from_eg(buses_ids: List[str], links_config: Dict):
     converters_df = remove_dangling_branches(converters_df, buses_ids)
 
     # Add electrical parameters
-    p_max_pu = links_config.get('p_max_pu', 1.)
-    converters_df['p_max_pu'] = p_max_pu
-    converters_df['p_min_pu'] = -p_max_pu
+    # p_max_pu = links_config.get('p_max_pu', 1.)
+    # converters_df['p_max_pu'] = p_max_pu
+    # converters_df['p_min_pu'] = -p_max_pu
 
     # TODO: why?
     converters_df['p_nom'] = 2000
@@ -377,8 +383,10 @@ def replace_b2b_converter_at_country_border_by_link(net: pypsa.Network):
                         .format(i, b0, line, linkcntry.at[i], buscntry.at[b1]))
 
 
-def load_lines_from_eg(buses_ids: List[str], lines_config: Dict, v_noms: List[float],
-                       line_types_df: pd.DataFrame):
+# def load_lines_from_eg(buses_ids: List[str], lines_config: Dict, v_noms: List[float],
+#                        line_types_df: pd.DataFrame):
+def load_lines_from_eg(buses_ids: List[str]):
+
     """
     TODO: complete
     Parameters
@@ -400,15 +408,15 @@ def load_lines_from_eg(buses_ids: List[str], lines_config: Dict, v_noms: List[fl
     lines_df = remove_dangling_branches(lines_df, buses_ids)
 
     # Set electrical parameters
-    for v_nom in v_noms:
-        lines_df.loc[lines_df["v_nom"] == v_nom, 'type'] = lines_config['types'][v_nom]
-    lines_df['s_max_pu'] = lines_config['s_max_pu']
+    # for v_nom in v_noms:
+    #     lines_df.loc[lines_df["v_nom"] == v_nom, 'type'] = lines_config['types'][v_nom]
+    # lines_df['s_max_pu'] = lines_config['s_max_pu']
 
     # Set lines s_nom (i.e. limit of apparent power in MVA) from line types
-    lines_df['s_nom'] = (
-        np.sqrt(3) * lines_df['type'].map(line_types_df.i_nom) *
-        lines_df['v_nom'] * lines_df.num_parallel
-    )
+    # lines_df['s_nom'] = (
+    #     np.sqrt(3) * lines_df['type'].map(line_types_df.i_nom) *
+    #     lines_df['v_nom'] * lines_df.num_parallel
+    # )
 
     return lines_df
 
@@ -456,7 +464,8 @@ def adjust_capacities_of_under_construction_branches(net: pypsa.Network, config_
     return net
 
 
-def load_transformers_from_eg(buses_ids: List[str], transformers_config: Dict):
+# def load_transformers_from_eg(buses_ids: List[str], transformers_config: Dict):
+def load_transformers_from_eg(buses_ids: List[str]):
     """
     TODO: complete
     Parameters
@@ -477,9 +486,9 @@ def load_transformers_from_eg(buses_ids: List[str], transformers_config: Dict):
     transformers_df = remove_dangling_branches(transformers_df, buses_ids)
 
     # Add transformer parameters
-    transformers_df["x"] = transformers_config.get('x', 0.1)
-    transformers_df["s_nom"] = transformers_config.get('s_nom', 2000)
-    transformers_df['type'] = transformers_config.get('type', '')
+    # transformers_df["x"] = transformers_config.get('x', 0.1)
+    # transformers_df["s_nom"] = transformers_config.get('s_nom', 2000)
+    # transformers_df['type'] = transformers_config.get('type', '')
 
     return transformers_df
 
@@ -522,7 +531,8 @@ def apply_parameter_corrections(net: pypsa.Network):
 
 
 # TODO: what are they doing with substations?
-def set_countries_and_substations(net: pypsa.Network, countries: List[str]):
+# def set_countries_and_substations(net: pypsa.Network, countries: List[str]):
+def set_countries_and_substations(net: pypsa.Network):
 
     buses = net.buses
 
@@ -530,11 +540,13 @@ def set_countries_and_substations(net: pypsa.Network, countries: List[str]):
         shape = shapely.prepared.prep(shape)
         return pd.Series(
             np.fromiter((shape.contains(Point(x, y))
-                        for x, y in buses.loc[:,["x", "y"]].values),
+                        for x, y in buses.loc[:, ["x", "y"]].values),
                         dtype=bool, count=len(buses)),
             index=buses.index
         )
 
+    countries = ['AL', 'AT', 'BA', 'BE', 'BG', 'CH', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GR', 'HR', 'HU',
+                 'IE', 'IT', 'LT', 'LU', 'LV', 'ME', 'MK', 'NL', 'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI', 'SK']
     shapes = get_shapes(countries)
     # country_shapes = gpd.read_file(snakemake.input.country_shapes).set_index('name')['geometry']
     country_shapes = shapes[~shapes.offshore]['geometry']

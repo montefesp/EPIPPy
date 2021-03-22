@@ -327,6 +327,7 @@ def get_shapes(region_codes: List[str], which: str = 'onshore_offshore', save: b
         union_shape = unary_union(get_eez_and_land_union_shapes([iso_code]))
         return x['geometry'].intersection(union_shape)
     shapes['geometry'] = shapes.apply(lambda x: filter_shape(x), axis=1)
+    shapes = shapes[~shapes['geometry'].is_empty]
 
     if save:
         shapes["name"] = shapes.index

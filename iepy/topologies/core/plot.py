@@ -16,7 +16,9 @@ def plot_topology(buses: pd.DataFrame, lines: pd.DataFrame = None) -> None:
         If None, do not display the lines.
     """
 
-    shapes = pd.concat([buses.offshore_region.dropna(), buses.onshore_region.dropna()])
+    shapes = buses.onshore_region.dropna()
+    if hasattr(buses, 'offshore_region'):
+        shapes = pd.concat([shapes, buses.offshore_region.dropna()])
     from iepy.geographics.plot import display_polygons
     ax = display_polygons(shapes.values, show=False)
 
