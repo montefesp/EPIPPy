@@ -197,10 +197,10 @@ def aggregate_legacy_capacity(spatial_resolution: float, include_operating: bool
     for country in countries:
         print(f"Country: {country}")
         shapes = get_shapes([country])
-        onshore_shape = shapes[~shapes["offshore"]]["geometry"].values[0]
-        offshore_shape = shapes[shapes["offshore"]]["geometry"].values
+        onshore_shape = shapes[~shapes["offshore"]]["geometry"]
+        offshore_shape = shapes[shapes["offshore"]]["geometry"]
         # If not offshore shape for country, remove offshore technologies from set
-        offshore_shape = None if len(offshore_shape) == 0 else offshore_shape[0]
+        offshore_shape = None if len(offshore_shape) == 0 else offshore_shape
         technologies_in_country = technologies
         if offshore_shape is None:
             technologies_in_country = [tech for tech in technologies if get_config_values(tech, ['onshore'])]

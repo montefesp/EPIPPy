@@ -55,6 +55,53 @@ def get_legacy_capacity_in_countries(tech: str, countries: List[str], raise_erro
     return capacities_ds
 
 
+def get_legacy_capacity_at_points(tech: str, points: List[tuple], raise_error: bool = True) -> pd.Series:
+    """
+    Return the total existing capacity (in GW) for the given tech for a set of countries.
+
+    If there is not data for a certain country, returns a capacity of 0.
+
+    Parameters
+    ----------
+    tech: str
+        Name of technology for which we want to retrieve legacy data.
+    points: List[tuple]
+        List of points at which legacy capacity is retrieved.
+    raise_error: bool (default: True)
+        Whether to raise an error if no legacy data is available for this technology.
+
+    Returns
+    -------
+    capacities: pd.Series
+        Legacy capacities (in GW) of technology 'tech' for each country.
+
+    """
+
+    assert len(points) != 0, "Error: List of points is empty."
+
+    # Read per grid cell capacity file
+    legacy_dir = f"{data_path}/generation/vres/legacy/generated/"
+    capacities_df = pd.read_csv(f"{legacy_dir}aggregated_capacity.csv", index_col=[0, 1])
+
+    plant, plant_type = get_config_values(tech, ["plant", "type"])
+    available_plant_types = set(capacities_df.index)
+    if (plant, plant_type) not in available_plant_types:
+        if raise_error:
+            raise ValueError(f"Error: no legacy data exists for tech {tech} with plant {plant} and type {plant_type}.")
+        else:
+            warnings.warn(f"Warning: No legacy data exists for tech {tech}.")
+            return pd.Series(0., index=points, dtype=float)
+
+    capacities_df = capacities_df.loc[(plant, plant_type)]
+    capacities_ds = capacities_df[['Longitude', 'Latitude', 'Capacity (GW)']]\
+        .set_index(['Longitude', 'Latitude'])
+    # Some weird shapes generate one point with the same coordinates.
+    capacities_ds = capacities_ds[~capacities_ds.index.duplicated(keep='first')]
+    capacities_ds = capacities_ds.reindex(points, fill_value=0.)
+
+    return capacities_ds['Capacity (GW)']
+
+
 def get_legacy_capacity_in_regions(tech: str, regions_shapes: pd.Series, countries: List[str],
                                    match_distance: float = 50., raise_error: bool = True) -> pd.Series:
     """
