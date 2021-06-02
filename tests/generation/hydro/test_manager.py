@@ -21,7 +21,7 @@ def test_get_hydro_capacities_wrong_plant_type():
 
 
 def test_get_hydro_capacities():
-    nb_per_level = {'ror': [26, 123],
+    nb_per_level = {'ror': [26, 144],
                     'phs': [22, 77],
                     'sto': [29, 108]}
     for i, level in enumerate(["countries", "NUTS2"]):

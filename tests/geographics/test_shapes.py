@@ -241,6 +241,7 @@ def test_get_shapes_save():
     get_shapes(codes, save=True)
     # Getting onshore
     df = get_shapes(codes, 'onshore')
+    print(df)
     assert isinstance(df, gpd.GeoDataFrame)
     assert list(df.keys()) == ["geometry"]
     assert not (set(df.index).symmetric_difference(set(codes)))

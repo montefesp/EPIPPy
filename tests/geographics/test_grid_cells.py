@@ -9,9 +9,9 @@ def test_create_grid_cells_too_coarse_resolution():
     res = 10.0
     points, gc = create_grid_cells(shape, res)
     assert isinstance(points, list)
-    assert isinstance(gc, list)
-    assert len(points) == 0
-    assert len(gc) == 0
+    assert isinstance(gc, np.ndarray)
+    assert len(points) == 1
+    assert len(gc) == 1
 
 
 def test_create_grid_cells():
@@ -47,8 +47,8 @@ def test_get_grid_cells_missing_shapes():
 
 def test_get_grid_cells():
     shapes = get_shapes(["BE"])
-    onshore_shape = shapes[~shapes["offshore"]].loc["BE", "geometry"]
-    offshore_shape = shapes[shapes["offshore"]].loc["BE", "geometry"]
+    onshore_shape = shapes[~shapes["offshore"]]["geometry"]
+    offshore_shape = shapes[shapes["offshore"]]["geometry"]
     ds = get_grid_cells(['wind_onshore', 'wind_offshore', 'pv_utility'],
                         0.25, onshore_shape, offshore_shape)
 

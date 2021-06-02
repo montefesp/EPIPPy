@@ -32,8 +32,8 @@ def test_get_topology_subset_and_no_existing_cap():
     assert "x" in n.buses.keys()
     assert "y" in n.buses.keys()
     assert "country" in n.buses.keys()
-    assert "region" in n.buses.keys()
-    assert "onshore" in n.buses.keys()
+    assert "onshore_region" in n.buses.keys()
+    assert "offshore_region" in n.buses.keys()
     # Links
     assert len(n.links) == 8
     assert all(l["p_min_pu"] == -1 for idx, l in n.links.iterrows())
@@ -51,8 +51,8 @@ def test_get_topology_whole():
     assert "x" in n.buses.keys()
     assert "y" in n.buses.keys()
     assert "country" in n.buses.keys()
-    assert "region" in n.buses.keys()
-    assert "onshore" in n.buses.keys()
+    assert "onshore_region" in n.buses.keys()
+    assert "offshore_region" in n.buses.keys()
     # Links
     assert len(n.links) == 80
     assert all(l["p_min_pu"] == -1 for idx, l in n.links.iterrows())
