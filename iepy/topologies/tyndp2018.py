@@ -34,22 +34,21 @@ def preprocess(plotting=True) -> None:
     # Create links
     link_data_fn = f"{data_path}topologies/tyndp2018/source/Input Data.xlsx"
     # Read TYNDP2018 (NTC 2027, reference grid) data
-    # TODO: explain here what each column corresponds to
-    #   Why are we using the GCA2040 scenario as upper bound and not sth else?
-    #     - GCA (Global Climate Action): full-speed global decarbonisation, large-scale renewables
     #     - ST (Sustainable Transition): targets reached by national regulation, emission trading schemes and subsidies,
     #                                    maximising the use of existing infrastructure
     #     - DG (Distributed Generation): prosumers at the centre - small-scale generation, batteries and fuel-switching
     #                                    society engaged and empowered
-    #   Why are we using NTC 2027 as exiting capacity and not 2020?
-    links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2], usecols=[0, 3, 4, 9, 10],
-                          names=["link", "in", "out", "p_nom_max_in", "p_nom_max_out"])
+    #     - GCA (Global Climate Action): full-speed global decarbonisation, large-scale renewables
+    # TODO:  Why are we using NTC 2027 as exiting capacity and not 2020?
+    links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2],
+                          usecols=[0, 3, 4, 5, 6, 7, 8, 9, 10],
+                          names=["link", "in", "out", "st_in", "st_out", "dg_in", "dg_out", "gca_in", "gca_out"])
 
     # Get NTC as the minimum capacity between the two flow directions.
-    # links["NTC"] = links[["in", "out"]].min(axis=1)
-    # TODO: warning this changed
     links["p_nom"] = links[["in", "out"]].max(axis=1)
-    links["p_nom_max"] = links[["p_nom_max_in", "p_nom_max_out"]].max(axis=1)
+    links["p_nom_st"] = links[["st_in", "st_out"]].max(axis=1)
+    links["p_nom_dg"] = links[["dg_in", "dg_out"]].max(axis=1)
+    links["p_nom_gca"] = links[["gca_in", "gca_out"]].max(axis=1)
     links["bus0"] = links.index.str[:2]
     links["bus1"] = [i[1][:2] for i in links.index.str.split('-')]
 
@@ -57,7 +56,7 @@ def preprocess(plotting=True) -> None:
     links_crossborder = links[links["bus0"] != links["bus1"]].copy()
     links_crossborder["id"] = links_crossborder["bus0"] + '-' + links_crossborder["bus1"]
     # Sum all capacities belonging to the same border and convert from MW to GW.
-    links = links_crossborder.groupby("id")[["p_nom", "p_nom_max"]].sum() / 1000.
+    links = links_crossborder.groupby("id")[["p_nom", "p_nom_st", "p_nom_dg", "p_nom_gca"]].sum() / 1000.
 
     links["id"] = links.index.values
     links["bus0"] = links["id"].apply(lambda k: k.split('-')[0])
@@ -143,8 +142,9 @@ def preprocess(plotting=True) -> None:
 
 
 def get_topology(network: pypsa.Network, countries: List[str] = None,
-                 p_nom_extendable: bool = True, extension_multiplier: float = None, use_ex_line_cap: bool = True,
-                 p_max_pu: float = 1.0, plot: bool = False) -> pypsa.Network:
+                 p_nom_extendable: bool = True, extension_multiplier: float = None, extension_base: str = 'GCA',
+                 use_ex_line_cap: bool = True, p_max_pu: float = 1.0,
+                 plot: bool = False) -> pypsa.Network:
     """
     Load the e-highway network topology (buses and links) using PyPSA.
 
@@ -158,6 +158,17 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
         Whether line capacity is allowed to be expanded
     extension_multiplier: float (default: None)
         By how much the capacity can be extended if extendable. If None, no limit on expansion.
+    extension_base: str (default: GCA)
+        TYNDP 2040 scenario to use as the basis for computing the max potential of links, can be one of:
+        - ST (Sustainable Transition): targets reached by national regulation, emission trading schemes and subsidies,
+                                       maximising the use of existing infrastructure
+                                       ~ 180 GW and 94 TWkm
+        - DG (Distributed Generation): prosumers at the centre - small-scale generation, batteries and fuel-switching
+                                       society engaged and empowered
+                                       ~ 190 GW and 99 TWkm
+        - GCA (Global Climate Action): full-speed global decarbonisation, large-scale renewables
+                                       ~ 200 GW and 103 TWkm
+        The three scenarios are quite similar in terms of NTCs with GCA being the most generous.
     use_ex_line_cap: bool (default True)
         Whether to use existing line capacity
     p_max_pu: float (default: 1.0)
@@ -173,6 +184,8 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
 
     assert countries is None or len(countries) != 0, "Error: Countries list must not be empty. If you want to " \
                                                      "obtain, the full topology, don't pass anything as argument."
+    assert extension_base in ['ST', 'DG', 'GCA'], f"Error: extension_base must be one of ST, DG or GCA, " \
+                                                     f"received {extension_base}."
 
     topology_dir = f"{data_path}topologies/tyndp2018/generated/"
     buses_fn = f"{topology_dir}buses.csv"
@@ -219,8 +232,15 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
     links['p_max_pu'] = p_max_pu
     links['p_min_pu'] = -p_max_pu  # Making the link bi-directional
     links['p_nom_extendable'] = p_nom_extendable
-    # TODO: check if those changes make sense
     if p_nom_extendable:
+        # Choose p_nom_max based on some TYNDP 2040 scenario
+        if extension_base == 'ST':
+            links['p_nom_max'] = links['p_nom_st']
+        elif extension_base == 'DG':
+            links['p_nom_max'] = links['p_nom_dg']
+        else:
+            links['p_nom_max'] = links['p_nom_gca']
+        links = links.drop(['p_nom_st', 'p_nom_dg', 'p_nom_gca'], axis=1)
         if extension_multiplier is not None:
             links['p_nom_max'] = (links['p_nom_max']*extension_multiplier).round(3)
             links['p_nom_max'] = links[['p_nom_max', 'p_nom_min']].max(axis=1)
@@ -244,4 +264,31 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
 
 
 if __name__ == "__main__":
-    preprocess(True)
+    # preprocess(True)
+
+    if 1:
+        from pypsa import Network
+        from iepy.geographics import get_subregions
+        import matplotlib.pyplot as plt
+
+        topology_dir = f"{data_path}topologies/tyndp2018/generated/"
+        links_fn = f"{topology_dir}links.csv"
+        links = pd.read_csv(links_fn, index_col='id')
+        print(links.p_nom_st.sum())
+        print(links.p_nom_dg.sum())
+        print(links.p_nom_gca.sum())
+        print((links.p_nom_st*links.length).sum())
+        print((links.p_nom_dg*links.length).sum())
+        print((links.p_nom_gca*links.length).sum())
+        exit()
+        diff_st_dg = (links.p_nom_dg - links.p_nom_st).abs()
+        diff_st_gca = (links.p_nom_gca - links.p_nom_st).abs()
+        diff_dg_gca = (links.p_nom_gca - links.p_nom_dg).abs()
+        pd.concat((diff_st_gca, diff_st_dg, diff_dg_gca), axis=1).max(axis=1).plot(kind='bar')
+        plt.figure()
+        links.p_nom_st.plot(ls='-', marker='.', c='b', alpha=0.5)
+        links.p_nom_dg.plot(ls='-', marker='.', c='r', alpha=0.5)
+        links.p_nom_gca.plot(ls='-', marker='.', c='g', alpha=0.5)
+        plt.xticks(ticks=range(len(links)), labels=list(links.index), rotation='90')
+        plt.grid()
+        plt.show()
