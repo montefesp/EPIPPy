@@ -84,6 +84,7 @@ def read_resource_database(spatial_resolution: float) -> xr.Dataset:
 
 def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float]]],
                              spatial_res: float, timestamps: pd.DatetimeIndex,
+                             precision: int = 3,
                              smooth_wind_power_curve: bool = True) -> pd.DataFrame:
     """
     Compute capacity factors for a list of points associated to a list of technologies.
@@ -96,6 +97,8 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
         Spatial resolution of coordinates
     timestamps: pd.DatetimeIndex
         Time stamps for which we want capacity factors
+    precision: int (default: 3)
+        Indicates at which decimal capacity factors should be rounded
     smooth_wind_power_curve : boolean (default True)
         If "True", the transfer function of wind assets replicates the one of a wind farm,
         rather than one of a wind turbine.
@@ -259,13 +262,13 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
     assert cap_factor_df.isna().to_numpy().sum() == 0, "Some capacity factors are not available."
 
     # Decrease precision of capacity factors
-    cap_factor_df = cap_factor_df.round(3)
+    cap_factor_df = cap_factor_df.round(precision)
 
     return cap_factor_df
 
 
 # Using Renewables.ninja
-def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd.DatetimeIndex,
+def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd.DatetimeIndex, precision: int = 3,
                                  throw_error: bool = True) -> pd.DataFrame:
     """
     Return capacity factors time-series for a set of countries over a given timestamps, for a given technology.
@@ -278,6 +281,8 @@ def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd
         List of ISO codes of countries.
     timestamps: pd.DatetimeIndex
         List of time stamps.
+    precision: int (default: 3)
+        Indicates at which decimal capacity factors should be rounded
     throw_error: bool (default True)
         Whether to throw an error when capacity factors are not available for a given country or
         compute capacity factors from another method.
@@ -327,7 +332,7 @@ def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd
             cap_factor_df.columns = missing_countries
             capacity_factors_df = pd.concat([capacity_factors_df, cap_factor_df], axis=1)
 
-    return capacity_factors_df[countries].round(3)
+    return capacity_factors_df[countries].round(precision)
 
 # --- Using atlite --- #
 # def get_cap_factor_for_regions(regions: List[Polygon], start_month: int, end_month: int = None):

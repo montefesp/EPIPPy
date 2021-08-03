@@ -27,8 +27,8 @@ def get_yearly_country_load(country: str, year: int) -> int:
 
     iea_load_dir = f"{data_path}load/source/iea/"
     available_countries = [c.strip(".csv") for c in listdir(iea_load_dir) if c.endswith(".csv")]
-    assert country in available_countries, f"Error: Data is not available for country {country}." \
-                                           f"Please download data."
+    assert country in available_countries, f"Error: Data is not available for country {country}.\n" \
+                                           f"Available countries are {available_countries}.\n Please download data."
 
     yearly_load_fn = f"{iea_load_dir}{country}.csv"
     yearly_load_ds = pd.read_csv(yearly_load_fn, index_col=0, squeeze=True)
@@ -96,7 +96,7 @@ def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
         if missing_countries:
             if missing_data == "error":
                 raise ValueError(f"Error: Load is not available for countries {sorted(list(missing_countries))} "
-                                 f"for the required timestamps.")
+                                 f"for the required timestamps.\nAvailable countries are {list(load.columns)}.")
             else:
                 countries_load[list(missing_countries)] = \
                     get_load_from_source_country(list(missing_countries), load.index)

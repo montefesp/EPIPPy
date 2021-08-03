@@ -58,7 +58,7 @@ def compute_marginal_cost(vom: float, fuel_cost: float = 0., efficiency: float =
     return vom + (fuel_cost + co2_cost * co2_content) / efficiency
 
 
-def get_costs(tech: str, nb_hours: float) -> Tuple[float, float]:
+def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, float]:
     """
     Return capital and marginal cost for a given generation technology.
 
@@ -68,6 +68,8 @@ def get_costs(tech: str, nb_hours: float) -> Tuple[float, float]:
         Name of a technology
     nb_hours: float
         Number of hours over which the investment costs will be used
+    precision: int (default: 3)
+        Indicates at which decimal costs should be rounded
 
     Returns
     -------
@@ -91,4 +93,4 @@ def get_costs(tech: str, nb_hours: float) -> Tuple[float, float]:
         marginal_cost = compute_marginal_cost(vom, fuel_info.loc[fuel, 'cost'], tech_info['efficiency_ds'],
                                               fuel_info.loc[fuel, 'CO2'], fuel_info.loc['CO2', 'cost'])
 
-    return round(capital_cost, 6), round(marginal_cost, 6)
+    return round(capital_cost, precision), round(marginal_cost, precision)
