@@ -320,7 +320,8 @@ def get_land_availability_for_shapes(shapes: List[Union[Polygon, MultiPolygon]],
 
 
 def get_capacity_potential_for_shapes(shapes: List[Union[Polygon, MultiPolygon]], filters: Dict,
-                                      power_density: float, processes: int = None) -> np.array:
+                                      power_density: float, precision: int = 3,
+                                      processes: int = None) -> np.array:
     """
     Return capacity potentials (GW) in a series of geographical shapes.
 
@@ -332,6 +333,8 @@ def get_capacity_potential_for_shapes(shapes: List[Union[Polygon, MultiPolygon]]
         Dictionary containing a set of values describing the filters to apply to obtain land availability.
     power_density: float
         Power density in MW/km2
+    precision: int (default: 3)
+        Indicates at which decimal costs should be rounded
     processes: int (default: None)
         Number of parallel processes
 
@@ -340,8 +343,8 @@ def get_capacity_potential_for_shapes(shapes: List[Union[Polygon, MultiPolygon]]
     np.array
         Array of capacity potentials (GW)
     """
-    available_area = get_land_availability_for_shapes(shapes, filters, processes)
-    return available_area * power_density / 1e3
+    available_area = get_land_availability_for_shapes(shapes, filters, processes=processes)
+    return (available_area * power_density / 1e3).round(precision)
 
 
 def get_capacity_potential_per_country(countries: List[str], is_onshore: float, filters: Dict,
