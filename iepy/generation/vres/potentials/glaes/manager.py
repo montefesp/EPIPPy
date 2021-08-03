@@ -282,7 +282,7 @@ def get_land_availability_for_shapes(shapes: List[Union[Polygon, MultiPolygon]],
     assert len(shapes) != 0, "Error: List of shapes is empty."
 
     # Check if availability has already been computed for the input shapes and filters
-    save_dir = f"{data_path}/generation/vres/potentials/generated/GLAES/available_areas/"
+    save_dir = f"{data_path}generation/vres/potentials/generated/GLAES/available_areas/"
     shapes_str = "".join([shapely.wkt.dumps(shape) for shape in shapes])
     shapes_hash = hashlib.sha224(bytes(shapes_str, 'utf-8')).hexdigest()
 
