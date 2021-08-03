@@ -334,7 +334,7 @@ def get_capacity_potential_for_shapes(shapes: List[Union[Polygon, MultiPolygon]]
     power_density: float
         Power density in MW/km2
     precision: int (default: 3)
-        Indicates at which decimal costs should be rounded
+        Indicates at which decimal potentials should be rounded
     processes: int (default: None)
         Number of parallel processes
 

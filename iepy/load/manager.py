@@ -58,7 +58,7 @@ def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
         List of codes referring to regions made of several countries defined in
         'data_path'/geographics/region_definition.csv
     precision: int (default: 3)
-        Indicates at which decimal capacity factors should be rounded
+        Indicates at which decimal load values should be rounded
     missing_data: str (default: error)
         Defines how to deal with missing data. If value is 'error', throws an error. If value is 'interpolate', uses
         data from another country
@@ -138,7 +138,7 @@ def get_load_from_source_country(target_countries: List[str], timestamps: pd.Dat
     timestamps: pd.DatetimeIndex
         List of time stamps
     precision: int (default: 3)
-        Indicates at which decimal capacity factors should be rounded
+        Indicates at which decimal load values should be rounded
 
     Returns
     -------
