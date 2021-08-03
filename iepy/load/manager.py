@@ -38,7 +38,8 @@ def get_yearly_country_load(country: str, year: int) -> int:
 
 
 def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
-             countries: List[str] = None, regions: List[str] = None, missing_data: str = "error") -> pd.DataFrame:
+             countries: List[str] = None, regions: List[str] = None,
+             precision: int = 3, missing_data: str = "error") -> pd.DataFrame:
     """
     Compute hourly load time series (in GWh) for given countries or regions.
 
@@ -54,7 +55,10 @@ def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
     countries: List[str] (default: None)
         ISO codes of countries
     regions: List[str] (default: None)
-        List of codes referring to regions made of several countries defined in 'data_path'/geographics/region_definition.csv
+        List of codes referring to regions made of several countries defined in
+        'data_path'/geographics/region_definition.csv
+    precision: int (default: 3)
+        Indicates at which decimal capacity factors should be rounded
     missing_data: str (default: error)
         Defines how to deal with missing data. If value is 'error', throws an error. If value is 'interpolate', uses
         data from another country
@@ -99,14 +103,14 @@ def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
                                  f"for the required timestamps.\nAvailable countries are {list(load.columns)}.")
             else:
                 countries_load[list(missing_countries)] = \
-                    get_load_from_source_country(list(missing_countries), load.index)
+                    get_load_from_source_country(list(missing_countries), load.index, precision=precision)
         countries_with_data = list(set(countries) - set(missing_countries))
         countries_load[countries_with_data] = load[countries_with_data]
         return countries_load
 
     # Get load per country
     if countries is not None:
-        return get_countries_load(countries).round(6)
+        return get_countries_load(countries).round(precision)
     # Get load aggregated by region
     elif regions is not None:
         load_per_region = pd.DataFrame(columns=regions, index=timestamps)
@@ -115,10 +119,11 @@ def get_load(timestamps: pd.DatetimeIndex = None, years_range: List[int] = None,
             countries = get_subregions(region)
             load_per_region[region] = get_countries_load(countries).sum(axis=1).values
 
-        return load_per_region.round(6)
+        return load_per_region.round(precision)
 
 
-def get_load_from_source_country(target_countries: List[str], timestamps: pd.DatetimeIndex) -> pd.DataFrame:
+def get_load_from_source_country(target_countries: List[str], timestamps: pd.DatetimeIndex,
+                                 precision: int = 3) -> pd.DataFrame:
     """
     Compute load for a list of countries.
 
@@ -132,6 +137,8 @@ def get_load_from_source_country(target_countries: List[str], timestamps: pd.Dat
         List of countries for which we want to obtain load
     timestamps: pd.DatetimeIndex
         List of time stamps
+    precision: int (default: 3)
+        Indicates at which decimal capacity factors should be rounded
 
     Returns
     -------
@@ -144,7 +151,7 @@ def get_load_from_source_country(target_countries: List[str], timestamps: pd.Dat
     load = pd.read_csv(opsd_load_fn, index_col=0, engine='python')
     load.index = pd.DatetimeIndex(load.index)
     load = load*1e-3
-    load = load.round(6)
+    load = load.round(precision)
 
     years_range = range(timestamps[0].year, timestamps[-1].year+1)
     assert years_range[0] >= 2015 and years_range[-1] <= 2018, \
