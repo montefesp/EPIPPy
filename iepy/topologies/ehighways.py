@@ -300,7 +300,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
     lines['capital_cost'] = pd.Series(index=lines.index)
     for idx in lines.index:
         carrier = lines.loc[idx].carrier
-        cap_cost, _ = get_costs(carrier, len(network.snapshots))
+        cap_cost, _ = get_costs(carrier, sum(network.snapshot_weightings))
         lines.loc[idx, ('capital_cost', )] = cap_cost * lines.length.loc[idx]
     """
 
@@ -314,7 +314,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None, add_offsho
     lines['capital_cost'] = pd.Series(index=lines.index)
     for idx in lines.index:
         carrier = lines.loc[idx].carrier
-        cap_cost, _ = get_costs(carrier, len(network.snapshots))
+        cap_cost, _ = get_costs(carrier, sum(network.snapshot_weightings))
         lines.loc[idx, ('capital_cost', )] = cap_cost * lines.length.loc[idx]
 
     network.import_components_from_dataframe(buses, "Bus")
