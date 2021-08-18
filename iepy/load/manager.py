@@ -198,7 +198,7 @@ def get_load_from_source_country(target_countries: List[str], timestamps: pd.Dat
     return target_countries_load
 
 
-def get_load_from_nuts_codes(nuts_codes_lists: List[List[str]], timestamps: pd.DatetimeIndex) -> pd.DataFrame:
+def get_load_from_nuts_codes(nuts_codes: List[str], timestamps: pd.DatetimeIndex) -> pd.DataFrame:
     """
     Compute the aggregated load in GWh for groups of NUTS regions.
 
@@ -207,8 +207,8 @@ def get_load_from_nuts_codes(nuts_codes_lists: List[List[str]], timestamps: pd.D
 
     Parameters
     ----------
-    nuts_codes_lists: List[List[str]]
-        List of lists of nuts codes (version 2016)
+    nuts_codes: List[str]
+        List of nuts codes (version 2016)
     timestamps: pd.DatetimeIndex
         List of time stamps
 
@@ -218,11 +218,11 @@ def get_load_from_nuts_codes(nuts_codes_lists: List[List[str]], timestamps: pd.D
         DataFrame with aggregated hourly load in GWh (columns are numbered from 0 to the number of groups minus one)
     """
 
-    assert isinstance(nuts_codes_lists, list) and len(nuts_codes_lists) != 0, \
-        "Error: 'nuts_codes_lists' must be a list of lists"
-    for i, nuts_codes in enumerate(nuts_codes_lists):
-        assert isinstance(nuts_codes, list), "Error: 'nuts_codes_lists' must be a list of lists"
-        assert len(nuts_codes) != 0, f"Error: NUTS codes list number {i} is empty"
+    assert isinstance(nuts_codes, list), \
+        "Error: 'nuts_codes' must be a list"
+    # for i, nuts_codes in enumerate(nuts_codes_lists):
+    #     assert isinstance(nuts_codes, list), "Error: 'nuts_codes_lists' must be a list of lists"
+    #     assert len(nuts_codes) != 0, f"Error: NUTS codes list number {i} is empty"
     pop_dens_fn = f"{data_path}geographics/source/eurostat/demo_r_d3dens.xls"
     pop_dens = pd.read_excel(pop_dens_fn, header=8, index_col=0)[:2213]
     pop_dens.index.name = 'code'
@@ -235,17 +235,16 @@ def get_load_from_nuts_codes(nuts_codes_lists: List[List[str]], timestamps: pd.D
     # gdp.index.name = 'code'
 
     # Check that we have data for all required NUTS regions
-    all_nuts_codes = set.union(*[set(region_list) for region_list in nuts_codes_lists])
-    area_missing_countries = all_nuts_codes - set(area.index)
+    area_missing_countries = set(nuts_codes) - set(area.index)
     assert not area_missing_countries, f"Error: Area is not available for following " \
                                        f"NUTS regions: {sorted(list(area_missing_countries))}"
 
-    pop_missing_countries = all_nuts_codes - set(pop_dens.index)
+    pop_missing_countries = set(nuts_codes) - set(pop_dens.index)
     assert not pop_missing_countries, f"Error: Population density is not available for following " \
                                       f"NUTS regions: {sorted(list(pop_missing_countries))}"
 
     # Get load at country level
-    countries = set([code[:2] for code in all_nuts_codes])
+    countries = set([code[:2] for code in nuts_codes])
     # Replace UK and EL
     nuts_to_iso = {"UK": "GB", "EL": "GR"}
     countries = [nuts_to_iso[r] if r in nuts_to_iso else r for r in countries]
@@ -253,26 +252,25 @@ def get_load_from_nuts_codes(nuts_codes_lists: List[List[str]], timestamps: pd.D
 
     # Convert to NUTS level
     total_country_people = pd.Series(0., index=countries, dtype=float)
-    load = pd.DataFrame(0., index=timestamps, columns=range(len(nuts_codes_lists)))
-    for idx, nuts_codes_list in enumerate(nuts_codes_lists):
-        for nuts_code in nuts_codes_list:
+    load = pd.DataFrame(0., index=timestamps, columns=["Load " + code for code in nuts_codes])
+    for nuts_code in nuts_codes:
 
-            # Get the load of the country in which the NUTS region resides
-            nuts_country_code = nuts_code[:2]
-            country_code = \
-                nuts_to_iso[nuts_country_code] if nuts_country_code in nuts_to_iso else nuts_country_code
-            country_load = countries_load[country_code]
+        # Get the load of the country in which the NUTS region resides
+        nuts_country_code = nuts_code[:2]
+        country_code = \
+            nuts_to_iso[nuts_country_code] if nuts_country_code in nuts_to_iso else nuts_country_code
+        country_load = countries_load[country_code]
 
-            # Down scale country load to the regions of interest by using population and gdp
-            regions_pop_dens = pop_dens.loc[nuts_code]['2016']
-            regions_area = area.loc[nuts_code]['2016']
-            # regions_gdp = gdp.loc[region_codes_list]
-            country_pop_dens = pop_dens.loc[nuts_country_code]['2016']
-            country_area = area.loc[nuts_country_code]['2016']
-            # country_gdp = gdp.loc[country_code]
+        # Down scale country load to the regions of interest by using population and gdp
+        regions_pop_dens = pop_dens.loc[nuts_code]['2016']
+        regions_area = area.loc[nuts_code]['2016']
+        # regions_gdp = gdp.loc[region_codes_list]
+        country_pop_dens = pop_dens.loc[nuts_country_code]['2016']
+        country_area = area.loc[nuts_country_code]['2016']
+        # country_gdp = gdp.loc[country_code]
 
-            total_country_people[country_code] += regions_area*regions_pop_dens
+        total_country_people[country_code] += regions_area*regions_pop_dens
 
-            load[idx] += country_load * regions_pop_dens * regions_area / (country_pop_dens * country_area)
+        load["Load " + nuts_code] = country_load * regions_pop_dens * regions_area / (country_pop_dens * country_area)
 
     return load

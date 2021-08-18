@@ -45,6 +45,7 @@ def get_powerplants(tech_name: str, country_codes: List[str]) -> pd.DataFrame:
                      inplace=True)
         # Replace ISO2 codes.
         pp_df["ISO2"] = pp_df["ISO2"].map(lambda x: replace_iso2_codes([x])[0])
+        pp_df = pp_df[~pp_df.index.duplicated(keep='first')]
 
         # Filter out plants outside target countries, of other tech than the target tech, whose capacity is missing.
         pp_df = pp_df.loc[(pp_df["ISO2"].isin(country_codes)) &
@@ -115,7 +116,7 @@ def match_powerplants_to_regions(pp_df: pd.DataFrame, shapes_ds: gpd.GeoSeries,
             # Need the if because some points are exactly at the same position
             return region_code if (isinstance(region_code, str) or isinstance(region_code, float)
                                    or isinstance(region_code, int)) else region_code.iloc[0]
-        except (AttributeError, KeyError):
+        except (AttributeError, KeyError, ValueError):
             return None
 
     # Find to which region each plant belongs
@@ -128,6 +129,14 @@ def match_powerplants_to_regions(pp_df: pd.DataFrame, shapes_ds: gpd.GeoSeries,
         plants_region_ds = pd.Series(index=pp_df.index)
         for country in unique_countries:
             pp_df_in_country = pp_df[pp_df["ISO2"] == country]
+
+            # pp_df_in_country_unique = pp_df_in_country.groupby(['lon', 'lat'], as_index=False)['Capacity'].sum()
+            # pp_df_in_country_unique['ISO2'] = country
+            # for idx in range(len(pp_df_in_country_unique.index)):
+            #     pp_df_in_country_unique.loc[idx, 'id'] = pp_df_in_country.index[(pp_df_in_country['lon'] == pp_df_in_country_unique.loc[idx, 'lon']) &
+            #                                                                     (pp_df_in_country['lat'] == pp_df_in_country_unique.loc[idx, 'lat'])][0]
+            # pp_df_in_country_unique.index = pp_df_in_country_unique['id']
+
             plants_locs = pp_df_in_country[["lon", "lat"]].apply(lambda xy: (xy[0], xy[1]), axis=1).values
             shapes_in_country = shapes_ds[[c == country for c in shapes_countries]]
             matched_locs = match_points_to_regions(plants_locs, shapes_in_country, distance_threshold=dist_threshold)

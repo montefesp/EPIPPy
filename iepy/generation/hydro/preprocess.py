@@ -13,7 +13,7 @@ import numpy as np
 import geopandas as gpd
 
 from iepy.geographics import match_points_to_regions, get_nuts_shapes, get_natural_earth_shapes, \
-    replace_iso2_codes, convert_country_codes, revert_old_country_names, convert_old_country_names
+    replace_iso2_codes, convert_country_codes, revert_old_country_names, convert_old_country_names, revert_iso2_codes
 from iepy.generation import get_powerplants, match_powerplants_to_regions
 from iepy.generation.hydro import get_hydro_production
 
@@ -228,7 +228,7 @@ def build_ror_data(ror_capacity_ds: pd.Series, timestamps: pd.DatetimeIndex,
         points = runoff_points_region_ds[runoff_points_region_ds == region].index.to_list()
         flood_event_threshold = ror_thresholds.loc[replace_iso2_codes([region[:2]])[0], 'value']
         if points:
-            ror_inflows_df[region] = compute_ror_series(runoff_dataset, points, flood_event_threshold)
+            ror_inflows_df[region] = compute_ror_series(runoff_dataset, points, flood_event_threshold).values
     ror_inflows_df.dropna(axis=1, inplace=True)
     missing_inflows_indexes = ~ror_capacity_ds.index.isin(ror_inflows_df.columns)
     missing_ror = ror_capacity_ds.loc[missing_inflows_indexes].dropna().sum()
@@ -462,7 +462,8 @@ def compute_countries_sto_multipliers(years: List[int], countries: List[str], st
 
     # Get total hydro-electric production and remove ROR production to get STO production
     sto_production_yearly_per_country = get_hydro_production(years=years, countries=countries)
-    countries_with_ror = set(countries).intersection(set(ror_production_yearly_per_country.index))
+    sto_production_yearly_per_country.index = revert_iso2_codes(countries)
+    countries_with_ror = set(revert_iso2_codes(countries)).intersection(set(ror_production_yearly_per_country.index))
     sto_production_yearly_per_country.loc[countries_with_ror] -= \
         ror_production_yearly_per_country.loc[countries_with_ror]
     # For some countries (like LV and IE), computed ROR potential is bigger than the Eurostat total hydro generation
@@ -632,11 +633,11 @@ def generate_eu_hydro_files(resolution: float, topology_unit: str,
 
 if __name__ == '__main__':
 
-    nuts_type_ = 'countries'
+    nuts_type_ = 'NUTS2'
     resolution_ = 0.5  # 0.28125
 
-    start = datetime(2014, 1, 1, 0, 0, 0)
-    end = datetime(2018, 12, 31, 23, 0, 0)
+    start = datetime(2010, 1, 1, 0, 0, 0)
+    end = datetime(2019, 12, 31, 23, 0, 0)
     timestamps_ = pd.date_range(start, end, freq='H')
 
     generate_eu_hydro_files(resolution_, nuts_type_, timestamps_)

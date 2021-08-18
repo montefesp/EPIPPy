@@ -148,7 +148,7 @@ def compute_capacity_factors(tech_points_dict: Dict[str, List[Tuple[float, float
                           for point in non_rounded_points]
         non_rounded_to_rounded_dict = dict(zip(non_rounded_points, rounded_points))
         sub_dataset = dataset.sel(locations=sorted(list(set(rounded_points))))
-
+        
         if resource == 'Wind':
 
             wind_speed_reference_height = 100.

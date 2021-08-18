@@ -289,10 +289,7 @@ def get_shapes(region_codes: List[str], which: str = 'onshore_offshore', save: b
     hash_name = hashlib.sha224(bytes(sorted_name, 'utf-8')).hexdigest()[:10]
     fn = f"{data_path}geographics/generated/{hash_name}.geojson"
     if isfile(fn):
-        print("ok")
-        print(gpd.read_file(fn))
         shapes = gpd.read_file(fn).set_index('name')[['offshore', 'geometry']]
-        print(shapes)
         if which == 'onshore':
             shapes = shapes[~shapes['offshore']].drop("offshore", axis=1)
         elif which == 'offshore':

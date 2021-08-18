@@ -188,7 +188,7 @@ def get_capacity_potential_at_points(tech_points_dict: Dict[str, List[Tuple[floa
     return capacity_potential_ds
 
 
-def get_capacity_potential_for_regions(tech_regions_dict: Dict[str, List[Union[Polygon, MultiPolygon]]]) -> pd.Series:
+def get_capacity_potential_for_regions(buses: List[str], tech_regions_dict: Dict[str, List[Union[Polygon, MultiPolygon]]]) -> pd.Series:
     """
     Get capacity potential (in GW) for a series of technology for associated geographical regions.
 
@@ -214,6 +214,7 @@ def get_capacity_potential_for_regions(tech_regions_dict: Dict[str, List[Union[P
 
         # Compute potential for each NUTS2 or EEZ
         potential_per_subregion_ds = read_capacity_potential(tech, nuts_type='nuts2')
+        potential_per_subregion_ds = potential_per_subregion_ds.loc[buses]
         if tech in ["wind_offshore", "wind_floating"]:
             potential_per_subregion_ds.index = [code[2:] for code in potential_per_subregion_ds.index]
 
