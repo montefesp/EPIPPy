@@ -144,7 +144,7 @@ def add_extra_components(net, extend_lines: bool = True, use_ex_cap: bool = True
     net.lines["s_nom_max"] = net.lines["s_nom"] * max_cap_mult
     net.lines["s_max_pu"] = p_max_pu
     for idx in net.lines.index:
-        cap_cost, _ = get_costs('AC', sum(net.snapshot_weightings['objective']))
+        cap_cost, _, _ = get_costs('AC', sum(net.snapshot_weightings['objective']))
         net.lines.loc[idx, ('capital_cost',)] = cap_cost * net.lines.length.loc[idx]
 
     net.links['p_nom_extendable'] = extend_lines
@@ -155,7 +155,7 @@ def add_extra_components(net, extend_lines: bool = True, use_ex_cap: bool = True
     net.links["p_max_pu"] = p_max_pu
     net.links["p_min_pu"] = -p_max_pu
     for idx in net.links.index:
-        cap_cost, _ = get_costs('DC', sum(net.snapshot_weightings['objective']))
+        cap_cost, _, _ = get_costs('DC', sum(net.snapshot_weightings['objective']))
         net.links.loc[idx, ('capital_cost',)] = cap_cost * net.links.length.loc[idx]
 
     return net

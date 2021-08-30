@@ -58,7 +58,7 @@ def compute_marginal_cost(vom: float, fuel_cost: float = 0., efficiency: float =
     return vom + (fuel_cost + co2_cost * co2_content) / efficiency
 
 
-def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, float]:
+def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, float, float]:
     """
     Return capital and marginal cost for a given generation technology.
 
@@ -83,6 +83,7 @@ def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, fl
     fuel_info_fn = f"{data_path}technologies/fuel_info.xlsx"
     fuel_info = pd.read_excel(fuel_info_fn, sheet_name='values', index_col=0)
 
+    start_up_cost = tech_info["startup_cost"]
     capital_cost = compute_capital_cost(tech_info["FOM"], tech_info["CAPEX"], tech_info["lifetime"], nb_hours)
 
     vom = tech_info['VOM']
@@ -93,4 +94,4 @@ def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, fl
         marginal_cost = compute_marginal_cost(vom, fuel_info.loc[fuel, 'cost'], tech_info['efficiency_ds'],
                                               fuel_info.loc[fuel, 'CO2'], fuel_info.loc['CO2', 'cost'])
 
-    return round(capital_cost, precision), round(marginal_cost, precision)
+    return round(capital_cost, precision), round(marginal_cost, precision), round(start_up_cost, precision)
