@@ -112,17 +112,12 @@ def load_topology(net, nuts_codes, config, voltages: List[float] = None, plot: b
     # Remove dangling branches
     net.lines = remove_dangling_branches(net.lines, net.buses.index)
     net.links = remove_dangling_branches(net.links, net.buses.index)
-    net.transformers = remove_dangling_branches(net.transformers, net.buses.index)
 
     # Set electrical parameters
     set_electrical_parameters_lines(net, config['lines'], net.buses.v_nom.dropna().unique().tolist())
     set_electrical_parameters_links(net, config['links'])
 
-    # Allows to set under construction links and lines to 0 or remove them completely,
-    # and remove some unconnected components that might appear as a result
-    net = adjust_capacities_of_under_construction_branches(net, config['lines'], config['links'])
     net = cluster_network(net, nuts_codes)
-    # net = add_offshore_nodes(net)
 
     if plot:
         import matplotlib.pyplot as plt
@@ -157,36 +152,6 @@ def add_extra_components(net, extend_lines: bool = True, use_ex_cap: bool = True
     for idx in net.links.index:
         cap_cost, _, _ = get_costs('DC', sum(net.snapshot_weightings['objective']))
         net.links.loc[idx, ('capital_cost',)] = cap_cost * net.links.length.loc[idx]
-
-    return net
-
-
-def add_offshore_nodes(net):
-
-    buses = net.buses[['x', 'y', 'onshore_region']].copy()
-    buses['offshore_region'] = None
-
-    # Offshore nodes
-    add_buses = pd.DataFrame([["OF01", -6.5, 49.5, None, Point(-6.5, 49.5)],  # England south-west
-                              ["OF02", 3.5, 55.5, None, Point(3.5, 55.5)],  # England East
-                              ["OF03", 30.0, 43.5, None, Point(30.0, 43.5)],  # Black Sea
-                              ["OF04", 18.5, 56.5, None, Point(18.5, 56.5)],  # Sweden South-east
-                              ["OF05", 19.5, 62.0, None, Point(19.5, 62.0)],  # Sweden North-east
-                              ["OF06", -3.0, 46.5, None, Point(-3.0, 46.5)],  # France west
-                              ["OF07", -5.0, 54.0, None, Point(-5.0, 54.0)],  # Isle of Man
-                              ["OF08", -7.5, 56.5, None, Point(-7.5, 56.0)],  # Uk North
-                              ["OF09", 15.0, 43.0, None, Point(15.0, 43.0)],  # Italy east
-                              ["OF10", 25.0, 39.0, None, Point(25.0, 39.0)],  # Greece East
-                              ["OF11", 1.5, 40.0, None, Point(1.5, 40.0)],  # Spain east
-                              ["OF12", 9.0, 65.0, None, Point(9.0, 65.0)],  # Norway South-West
-                              ["OF12", 14.5, 69.0, None, Point(14.0, 68.5)],  # Norway North-West
-                              ["OF12", 11.5, 57.0, None, Point(11.5, 57.0)],  # East Denmark
-                              ["OF13", -1.0, 50.0, None, Point(-1.0, 50.0)],  # France North
-                              ["OF14", -9.5, 41.0, None, Point(-9.5, 41.0)]],  # Portugal West
-                             columns=["bus_id", "x", "y", "onshore_region", "offshore_region"])
-    add_buses = add_buses.set_index("bus_id")
-    buses = buses.append(add_buses)
-    net.buses = buses
 
     return net
 
