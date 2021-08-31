@@ -79,7 +79,6 @@ def cluster_network(net: pypsa.Network, nuts_codes: List[str],
     shapes = get_shapes(nuts_codes, which='onshore')
 
     # --- Buses --- #
-    # TODO: this is shit --> should return a list keeping the index of the original points
     def add_region(lon, lat):
         try:
             region_code = matched_locs[lon, lat]
@@ -88,8 +87,6 @@ def cluster_network(net: pypsa.Network, nuts_codes: List[str],
                                    or isinstance(region_code, int)) else region_code.iloc[0]
         except (AttributeError, KeyError):
             return None
-    # plants_region_ds.loc[pp_df_in_country.index] = \
-    #     pp_df_in_country[["lon", "lat"]].apply(lambda x: add_region(x[0], x[1]), axis=1)
 
     buses_positions = net.buses[['x', 'y']].apply(lambda p: (p.x, p.y), axis=1).tolist()
     matched_locs = match_points_to_regions(buses_positions, shapes["geometry"], keep_outside=False).dropna()
@@ -138,12 +135,7 @@ def cluster_network(net: pypsa.Network, nuts_codes: List[str],
 
         # Merge those lines by voltage level
         lines_df = old_lines_df.groupby("type")['v_nom'].unique().apply(lambda x: x[0]).to_frame()
-        # if not use_ex_cap:
-        #     lines_df["s_nom"] = 0.
-        # else:
         lines_df['s_nom'] = old_lines_df.groupby("type")['s_nom'].sum() * 1e-3
-        # lines_df["s_nom_min"] = lines_df["s_nom"]
-        # lines_df["s_nom_max"] = lines_df["s_nom"] * max_cap_mult
         lines_df['num_parallel'] = old_lines_df.groupby("type")['num_parallel'].sum()
         lines_df['x'] = old_lines_df.groupby("type")['x'].apply(lambda x: 1/sum(1/x))
         lines_df["line_id"] = lines_df['v_nom'].apply(lambda x: f"{bus0}-{bus1}-{x}")
@@ -167,9 +159,6 @@ def cluster_network(net: pypsa.Network, nuts_codes: List[str],
 
         all_lines_df = pd.concat((all_lines_df, lines_df))
     all_lines_df.index = all_lines_df.index.map(lambda x: str(x)[:-4])
-    # all_lines_df["s_nom_extendable"] = extend_lines
-
-    # print(all_lines_df.to_string())
 
     # --- Links --- #
     # Remove lines associated to buses that have been removed
@@ -191,30 +180,8 @@ def cluster_network(net: pypsa.Network, nuts_codes: List[str],
         links_df.loc[link_index, ['bus0', 'bus1']] = (bus0, bus1)
         # Get all links in original network that were connected to bus0 and bus1
         old_links_df = net.links[(net.links.bus0 == bus0) & (net.links.bus1 == bus1)]
-        # Add capacities
-        # if not use_ex_cap:
-        #     links_df.loc[link_index, 'p_nom'] = 0.
-        # else:
         links_df.loc[link_index, 'p_nom'] = old_links_df['p_nom'].sum() * 1e-3
-    # links_df["p_nom_min"] = links_df["p_nom"]
-    # links_df["p_nom_max"] = links_df["p_nom"] * max_cap_mult
-    # links_df["p_max_pu"] = -1.
     links_df["length"] = links_df[['bus0', 'bus1']].apply(lambda x: compute_distance(x.bus0, x.bus1), axis=1)
-
-    # TODO: Parameters to consider
-    #  - name: ok
-    #  - bus0: ok
-    #  - bus1: ok
-    #  - carrier: nope --> all dc
-    #  - underground: how? --> affect cost
-    #  - underwater_fraction: how? --> affect cost
-    #  - under_construction: already dealt with before
-    #  - tags: nope
-    #  - geometry: nope (replaced by straight line)
-    #  - length: how? -> just take fly-distance (times 1.25 like in pypsa-eur?)
-    #  - p_nom: how?
-    #  - num_parallel: how?
-    # print(links_df.to_string())
 
     clustered_net = pypsa.Network()
     clustered_net.import_components_from_dataframe(buses_df, 'Bus')
