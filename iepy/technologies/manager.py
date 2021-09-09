@@ -76,55 +76,6 @@ def get_config_dict(tech_names: List[str] = None, params: Union[List[str], List[
     return tech_conf
 
 
-def get_config_dict_old(tech_names: List[str] = None, params: Union[List[str], List[List[str]]] = None) -> Dict[str, Any]:
-    """
-    Returns a dictionary associating to each technology name a list of required configuration parameters.
-
-    Parameters
-    ----------
-    tech_names: List[str]
-        Technology names.
-    params: Union[List[str], List[List[str]]] (default: None)
-        Names of configuration parameters.
-        If None returns all available parameters for each technology.
-        If List[str], returns the same parameters for each technology name.
-        If List[List[str]], returns the independent parameters for each technology name.
-
-    Returns
-    -------
-    tech_conf: Dict[str, Any]
-        Dictionary associating to each technology name the required configuration parameters.
-
-    """
-
-    if tech_names is not None:
-        assert len(tech_names) != 0, "Error: List of technology names is empty."
-    if params is not None:
-        assert len(params) != 0, "Error: List of parameters is empty."
-
-    tech_conf_path = f"{data_path}technologies/tech_config.yml"
-    tech_conf_all = yaml.load(open(tech_conf_path, 'r'), Loader=yaml.FullLoader)
-
-    if tech_names is None:
-        tech_names = list(tech_conf_all.keys())
-
-    # Build a dictionary containing data for each tech and parameter
-    tech_conf = {}
-    for tech_name in tech_names:
-        # If the technology is a default one, check the custom technologies
-        assert tech_name in tech_conf_all, f"Error: No configuration is written for technology name {tech_name}."
-        if params is not None:
-            tech_conf[tech_name] = {}
-            for param in params:
-                assert param in tech_conf_all[tech_name],\
-                    f"Error: Parameter {param} is not defined for technology name {tech_name}."
-                tech_conf[tech_name][param] = tech_conf_all[tech_name][param]
-        else:
-            tech_conf[tech_name] = tech_conf_all[tech_name]
-
-    return tech_conf
-
-
 def get_config_values(tech_name: str, params: List[str]) -> Union[Any, List[Any]]:
     """
     Return the values corresponding to a series of configuration parameters.

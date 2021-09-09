@@ -98,6 +98,9 @@ def load_topology(nuts_codes, config, voltages: List[float] = None, plot: bool =
     if 1:
         import matplotlib.pyplot as plt
         net.plot(bus_sizes=0.001)
+        plt.show()
+
+    exit()
 
     # Remove all buses outside desired regions
     region_shapes_ds = get_shapes(nuts_codes, save=True)["geometry"]
