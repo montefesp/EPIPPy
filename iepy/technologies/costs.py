@@ -2,9 +2,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from iepy.technologies.manager import get_config_values, get_tech_info, get_fuel_info
-
-from iepy import data_path
+from iepy.technologies.manager import get_tech_info, get_fuel_info
 
 NHoursPerYear = 8760.0
 
