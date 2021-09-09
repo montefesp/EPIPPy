@@ -2,7 +2,7 @@ from typing import Tuple
 
 import pandas as pd
 
-from .manager import get_config_values
+from iepy.technologies.manager import get_config_values, get_tech_info, get_fuel_info
 
 from iepy import data_path
 
@@ -76,21 +76,21 @@ def get_costs(tech: str, nb_hours: float, precision: int = 3) -> Tuple[float, fl
     Capital cost (M€/GWel or M€/GWel/km) and marginal cost (M€/GWhel)
 
     """
-    tech_info_fn = f"{data_path}technologies/tech_info.xlsx"
-    tech_info = pd.read_excel(tech_info_fn, sheet_name='values', index_col=[0, 1])
-    plant, plant_type = get_config_values(tech, ["plant", "type"])
-    tech_info = tech_info.loc[plant, plant_type]
-    fuel_info_fn = f"{data_path}technologies/fuel_info.xlsx"
-    fuel_info = pd.read_excel(fuel_info_fn, sheet_name='values', index_col=0)
 
+    tech_info = get_tech_info(tech, ["FOM", "CAPEX", "lifetime", "VOM", "efficiency_ds", "fuel"])
+
+    # Capital cost
     capital_cost = compute_capital_cost(tech_info["FOM"], tech_info["CAPEX"], tech_info["lifetime"], nb_hours)
 
+    # Marginal cost
     vom = tech_info['VOM']
     fuel = tech_info['fuel']
     if pd.isna(fuel):
         marginal_cost = compute_marginal_cost(vom)
     else:
-        marginal_cost = compute_marginal_cost(vom, fuel_info.loc[fuel, 'cost'], tech_info['efficiency_ds'],
-                                              fuel_info.loc[fuel, 'CO2'], fuel_info.loc['CO2', 'cost'])
+        fuel_info = get_fuel_info(fuel, ['cost', 'CO2'])
+        co2_cost = get_fuel_info('CO2', ['cost']).values[0]
+        marginal_cost = compute_marginal_cost(vom, fuel_info['cost'], tech_info['efficiency_ds'],
+                                              fuel_info['CO2'], co2_cost)
 
     return round(capital_cost, precision), round(marginal_cost, precision)
