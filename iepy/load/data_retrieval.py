@@ -36,4 +36,4 @@ def download_iea_electricity_consumption(countries, start_year, end_year):
 
 if __name__ == '__main__':
     countries_ = ["CY", "MT"]
-    download_iea_electricity_consumption(countries_, 1990, 2017)
+    download_iea_electricity_consumption(countries_, 1990, 2018)

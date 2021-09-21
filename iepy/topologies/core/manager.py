@@ -98,17 +98,16 @@ def remove_dangling_branches(branches_df: pd.DataFrame(), buses_ids: Union[List[
 def find_closest_links(links_df: pd.DataFrame, new_links_df: pd.DataFrame,
                        distance_upper_bound: float = 1.5) -> pd.Series:
     """
-
-    # TODO: complete
+    TODO: complete
+    Parameters
+    ----------
 
     Returns
     -------
 
-    TODO: what does it return?
-
     Notes
     -----
-    This function is originally copied from PyPSA-Eur script base_network.py
+    This function is originally copied from PyPSA-Eur script base_network.py.
     
 
     """
@@ -153,6 +152,10 @@ def remove_unconnected_components(net: pypsa.Network) -> pypsa.Network:
 
     Returns
     -------
+
+    Notes
+    -----
+    This function is originally copied from PyPSA-Eur script base_network.py.
 
     """
     _, labels = csgraph.connected_components(net.adjacency_matrix(), directed=False)

@@ -8,18 +8,17 @@ import xarray as xr
 import xarray.ufuncs as xu
 import numpy as np
 import pandas as pd
-import dask.array as da
-import dask
-dask.config.set({"array.slicing.split_large_chunks": True})
 
-# from shapely.geometry import Point, Polygon
-# import atlite
 import windpowerlib
 
 from iepy.technologies import get_config_dict, get_config_values
 from iepy.geographics import get_shapes
 
 from iepy import data_path
+
+import dask.array as da
+import dask
+dask.config.set({"array.slicing.split_large_chunks": True})
 
 
 def read_resource_database(spatial_resolution: float) -> xr.Dataset:
@@ -41,7 +40,6 @@ def read_resource_database(spatial_resolution: float) -> xr.Dataset:
     available_res = sorted([float(res) for res in listdir(main_resource_dir)])
     # Find the dataset with the least precise resolution that can accommodate the desired resolution
     dataset_resolution = None
-    # TODO: tis doesn't work if the smaller resolution directory doesn't contain the appropriate region
     for spatial_res in available_res:
         if int(spatial_resolution*1e6) % int(spatial_res*1e6) == 0:
             dataset_resolution = spatial_res
@@ -323,7 +321,7 @@ def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd
             spatial_res = 0.5
             missing_countries = sorted(list(missing_countries))
             which = 'onshore' if get_config_values(tech, ["onshore"]) else 'offshore'
-            shapes_df = get_shapes(missing_countries, which=which)
+            shapes_df = get_shapes(missing_countries, which=which, save=True)
             # TODO: weird userwarning happening on Iceland
             centroids = shapes_df["geometry"].centroid
             points = [(round(p.x / spatial_res) * spatial_res, round(p.y / spatial_res) * spatial_res)
@@ -333,88 +331,3 @@ def get_cap_factor_for_countries(tech: str, countries: List[str], timestamps: pd
             capacity_factors_df = pd.concat([capacity_factors_df, cap_factor_df], axis=1)
 
     return capacity_factors_df[countries].round(precision)
-
-# --- Using atlite --- #
-# def get_cap_factor_for_regions(regions: List[Polygon], start_month: int, end_month: int = None):
-#     """
-#     Return the capacity factor series and generation capacity for pv and wind for a list of regions.
-#
-#     Parameters
-#     ----------
-#     regions: List[Polygon]
-#         List of geographical regions for which we want a capacity factor series
-#     start_month: int
-#         Number of the first month
-#     end_month: int
-#         Number of the last month. If equal to start_month, data will be returned only for one month.
-#         Another way to get this behavior is just no setting end_month and leaving it to None.
-#
-#     Returns
-#     -------
-#     wind_cap_factors: xr.DataArray with coordinates id (i.e. regions) and time
-#         Wind capacity factors for each region in regions
-#     wind_capacities:
-#         Wind generation capacities for each region in regions
-#     pv_cap_factors:
-#         PV capacity factors for each region in regions
-#     pv_capacities:
-#         PV generation capacity for each region in regions
-#     """
-#
-#     if end_month is None:
-#         end_month = start_month
-#
-#     assert start_month <= end_month, \
-#         "ERROR: The number of the end month must be superior to the number of the start month"
-#
-#     cutout_dir = f"{data_path}cutouts/"
-#
-#     cutout_params = dict(years=[2013], months=list(range(start_month, end_month+1)))
-#     cutout = atlite.Cutout("europe-2013-era5", cutout_dir=cutout_dir, **cutout_params)
-#
-#     # Wind
-#     wind_cap_factors, wind_capacities = cutout.wind(shapes=regions, turbine="Vestas_V112_3MW", per_unit=True,
-#                                                     return_capacity=True)
-#
-#     # PV
-#     pv_params = {"panel": "CSi",
-#                  "orientation": {
-#                      "slope": 35.,
-#                      "azimuth": 180.}}
-#     pv_cap_factors, pv_capacities = cutout.pv(shapes=regions, **pv_params, per_unit=True, return_capacity=True)
-#
-#     # Change precision
-#     wind_cap_factors = xr.apply_ufunc(lambda x: np.round(x, 3), wind_cap_factors)
-#     pv_cap_factors = xr.apply_ufunc(lambda x: np.round(x, 3), pv_cap_factors)
-#
-#     return wind_cap_factors, wind_capacities, pv_cap_factors, pv_capacities
-#
-#
-# def get_cap_factor_at_points(points: List[Point], start_month: int, end_month: int = None):
-#     """
-#     Return the capacity factor series and generation capacity for pv and wind for a list of points.
-#
-#     Parameters
-#     ----------
-#     points: List[Point]
-#         Point for which we want a capacity factor series
-#     start_month: int
-#         Number of the first month
-#     end_month: int
-#         Number of the last month. If equal to start_month, data will be returned only for one month.
-#         Another way to get this behavior is just no setting end_month and leaving it to None.
-#
-#     Returns
-#     -------
-#     See 'get_cap_factor_for_regions'
-#
-#     """
-#
-#     resolution = 0.5
-#     # Create a polygon around the point
-#     polygon_df = pd.DataFrame([Polygon([(point.x-resolution, point.y-resolution),
-#                                         (point.x-resolution, point.y+resolution),
-#                                         (point.x+resolution, point.y+resolution),
-#                                         (point.x+resolution, point.y-resolution)]) for point in points],
-#                               index=[(point.x, point.y) for point in points], columns=["region"]).region
-#     return get_cap_factor_for_regions(polygon_df, start_month, end_month)

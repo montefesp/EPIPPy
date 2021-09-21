@@ -286,7 +286,9 @@ def get_shapes(region_codes: List[str], which: str = 'onshore_offshore', save: b
 
     # If shapes for those codes were previously computed, output is returned directly from file.
     sorted_name = "".join(sorted(region_codes))
+    print(region_codes)
     hash_name = hashlib.sha224(bytes(sorted_name, 'utf-8')).hexdigest()[:10]
+    print(hash_name)
     fn = f"{data_path}geographics/generated/{hash_name}.geojson"
     if isfile(fn):
         print("ok")

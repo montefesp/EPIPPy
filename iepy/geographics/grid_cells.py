@@ -98,7 +98,6 @@ def get_grid_cells(technologies: List[str], resolution: float,
                                   f"shapes for technology {tech}"
 
     # Divide onshore and offshore shapes at a given resolution
-    # TODO: why is taking ages on onshore shape of EU compared to offshore?
     onshore_points, onshore_grid_cells_shapes = [], np.array([])
     if onshore_shape is not None:
         for r in onshore_shape.index:

@@ -39,7 +39,6 @@ def preprocess(plotting=True) -> None:
     #     - DG (Distributed Generation): prosumers at the centre - small-scale generation, batteries and fuel-switching
     #                                    society engaged and empowered
     #     - GCA (Global Climate Action): full-speed global decarbonisation, large-scale renewables
-    # TODO:  Why are we using NTC 2027 as exiting capacity and not 2020?
     links = pd.read_excel(link_data_fn, sheet_name="NTC", index_col=0, skiprows=[0, 2],
                           usecols=[0, 3, 4, 5, 6, 7, 8, 9, 10],
                           names=["link", "in", "out", "st_in", "st_out", "dg_in", "dg_out", "gca_in", "gca_out"])
@@ -273,22 +272,15 @@ if __name__ == "__main__":
 
         topology_dir = f"{data_path}topologies/tyndp2018/generated/"
         links_fn = f"{topology_dir}links.csv"
-        links = pd.read_csv(links_fn, index_col='id')
-        print(links.p_nom_st.sum())
-        print(links.p_nom_dg.sum())
-        print(links.p_nom_gca.sum())
-        print((links.p_nom_st*links.length).sum())
-        print((links.p_nom_dg*links.length).sum())
-        print((links.p_nom_gca*links.length).sum())
-        exit()
-        diff_st_dg = (links.p_nom_dg - links.p_nom_st).abs()
-        diff_st_gca = (links.p_nom_gca - links.p_nom_st).abs()
-        diff_dg_gca = (links.p_nom_gca - links.p_nom_dg).abs()
+        links_ = pd.read_csv(links_fn, index_col='id')
+        diff_st_dg = (links_.p_nom_dg - links_.p_nom_st).abs()
+        diff_st_gca = (links_.p_nom_gca - links_.p_nom_st).abs()
+        diff_dg_gca = (links_.p_nom_gca - links_.p_nom_dg).abs()
         pd.concat((diff_st_gca, diff_st_dg, diff_dg_gca), axis=1).max(axis=1).plot(kind='bar')
         plt.figure()
-        links.p_nom_st.plot(ls='-', marker='.', c='b', alpha=0.5)
-        links.p_nom_dg.plot(ls='-', marker='.', c='r', alpha=0.5)
-        links.p_nom_gca.plot(ls='-', marker='.', c='g', alpha=0.5)
-        plt.xticks(ticks=range(len(links)), labels=list(links.index), rotation='90')
+        links_.p_nom_st.plot(ls='-', marker='.', c='b', alpha=0.5)
+        links_.p_nom_dg.plot(ls='-', marker='.', c='r', alpha=0.5)
+        links_.p_nom_gca.plot(ls='-', marker='.', c='g', alpha=0.5)
+        plt.xticks(ticks=range(len(links_)), labels=list(links_.index), rotation='90')
         plt.grid()
         plt.show()
