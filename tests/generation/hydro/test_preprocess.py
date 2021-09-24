@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.generation.hydro.preprocess import *
+from epippy.generation.hydro.preprocess import *
 
 
 def get_timestamps(years: List[int]):

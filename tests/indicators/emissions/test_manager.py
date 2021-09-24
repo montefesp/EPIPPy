@@ -1,5 +1,5 @@
 import pytest
-from iepy.indicators.emissions.manager import *
+from epippy.indicators.emissions.manager import *
 
 
 def test_non_available_year():

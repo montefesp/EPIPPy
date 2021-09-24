@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.generation.vres.potentials.enspreso import *
+from epippy.generation.vres.potentials.enspreso import *
 
 
 def test_get_available_regions_wrong_type():

@@ -1,7 +1,7 @@
 import pytest
 
-from iepy.geographics.grid_cells import *
-from iepy.geographics import get_shapes
+from epippy.geographics.grid_cells import *
+from epippy.geographics import get_shapes
 
 
 def test_create_grid_cells_too_coarse_resolution():

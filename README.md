@@ -1,26 +1,26 @@
 <a href="https://www.montefiore.uliege.be/"><img src="https://www.montefiore.uliege.be/upload/docs/image/svg-xml/2019-04/montefiore_institute.svg" alt="University of Liège - Montefiore institute" width="230px"></a>
 
-# iepy
-Input preprocessing for Expansion Planning in Python
+# EPIPPy
+Expansion Planning Input Preprocessing in Python
 
-iepy provides a set of functions and scripts to preprocess data that can be then used in an expansion planning model.
+EPIPPy provides a set of functions and scripts to preprocess data that can be then used in an expansion planning model.
 
 ## Current capabilities
 
 (Retrieval), preprocessing and management of:
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/generation">generation</a> data (hydro capacities and flows, RES existing capacities, capacity factors, potentials, ...)
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/geographics">geographical</a> data (computation of countries and sub-regions shapes, manipulation of points, codes, ...)
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/indicators/population">population</a> data
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/indicators/emissions">emissions</a> (annual emission computation)
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/load">load</a> (yearly and hourly load computation)
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/technologies">technologies</a> (costs and parameters)
-- <a href="https://github.com/montefesp/iepy/tree/master/iepy/topologies">topologies</a>
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/generation">generation</a> data (hydro capacities and flows, RES existing capacities, capacity factors, potentials, ...)
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/geographics">geographical</a> data (computation of countries and sub-regions shapes, manipulation of points, codes, ...)
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/indicators/population">population</a> data
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/indicators/emissions">emissions</a> (annual emission computation)
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/load">load</a> (yearly and hourly load computation)
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/technologies">technologies</a> (costs and parameters)
+- <a href="https://github.com/montefesp/epippy/tree/master/epippy/topologies">topologies</a>
 
 ## Data
 
-For iepy to work properly, it has to have access to a database following a certain structure. This database can be downloaded <a href="https://dox.ulg.ac.be/index.php/apps/files/?dir=/py_grid_exp&fileid=268947668">here</a>.
+For EPIPPy to work properly, it has to have access to a database following a certain structure. This database can be downloaded <a href="https://dox.ulg.ac.be/index.php/apps/files/?dir=/py_grid_exp&fileid=268947668">here</a>.
 
-After downloading the database, the path to the folder containing it must be specified in iepy/\_\_init\_\_.py (to be updated).
+After downloading the database, the path to the folder containing it must be specified in epippy/\_\_init\_\_.py (to be updated).
 
 ## Dependencies
 `To be complented`
@@ -28,4 +28,4 @@ After downloading the database, the path to the folder containing it must be spe
 ## Installation
 
 1. Clone git
-2. Add iepy to your PYTHONPATH
+2. Add epippy to your PYTHONPATH

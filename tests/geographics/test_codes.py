@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.geographics.codes import *
+from epippy.geographics.codes import *
 
 
 def test_convert_country_codes_wrong_country():

@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.generation.vres.potentials.glaes import *
+from epippy.generation.vres.potentials.glaes import *
 
 # All these tests were run with a pixelRes set to 1000
 def check_correctness(expected, actual):
