@@ -18,7 +18,7 @@ EPIPPy provides a set of functions and scripts to preprocess data that can be th
 
 ## Data
 
-For EPIPPy to work properly, it has to have access to a database following a certain structure. This database can be downloaded <a href="https://dox.ulg.ac.be/index.php/apps/files/?dir=/py_grid_exp&fileid=268947668">here</a>.
+For EPIPPy to work properly, it has to have access to a database following a certain structure. This database can be downloaded <a href="ttps://zenodo.org/record/5519081">here</a>.
 
 After downloading the database, the path to the folder containing it must be specified in epippy/\_\_init\_\_.py (to be updated).
 
