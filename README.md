@@ -23,9 +23,24 @@ For EPIPPy to work properly, it has to have access to a database following a cer
 After downloading the database, the path to the folder containing it must be specified in epippy/\_\_init\_\_.py (to be updated).
 
 ## Dependencies
-`To be complented`
+  - pypsa
+  - gdal=2.4.4
+  - pycountry
+  - geopandas
+  - geopy
+  - xlrd
+  - unidecode
+  - dask
+  - xlrd
+  - progressbar2
+  - openpyxl 
+  - git+https://github.com/FZJ-IEK3-VSA/geokit.git#egg=geokit
+  - git+https://github.com/FZJ-IEK3-VSA/glaes.git#egg=glaes
+  - windpowerlib
+  - vresutils
 
 ## Installation
 
 1. Clone git
 2. Add epippy to your PYTHONPATH
+3. Install requirements in environment.yaml using conda

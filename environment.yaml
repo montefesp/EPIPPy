@@ -1,0 +1,25 @@
+name: epippy
+channels:
+  - defaults
+  - conda-forge
+  - gurobi
+dependencies:
+  - python
+  - pip
+  - pypsa
+  - gdal=2.4.4
+  - pycountry
+  - geopandas
+  - geopy
+  - xlrd
+  - unidecode
+  - dask
+  - xlrd
+  - progressbar2
+  - openpyxl
+
+  - pip:
+      - git+https://github.com/FZJ-IEK3-VSA/geokit.git#egg=geokit
+      - git+https://github.com/FZJ-IEK3-VSA/glaes.git#egg=glaes
+      - windpowerlib
+      - vresutils

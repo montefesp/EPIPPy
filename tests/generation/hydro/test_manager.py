@@ -22,8 +22,8 @@ def test_get_hydro_capacities_wrong_plant_type():
 
 def test_get_hydro_capacities():
     nb_per_level = {'ror': [26, 144],
-                    'phs': [22, 77],
-                    'sto': [29, 108]}
+                    'phs': [22, 78],
+                    'sto': [29, 128]}
     for i, level in enumerate(["countries", "NUTS2"]):
         ds = get_hydro_capacities(level, "ror")
         assert isinstance(ds, pd.Series)

@@ -125,6 +125,7 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         if len(data) == 0:
             return capacities
 
+        # TODO: where is this file ?
         gdp_data_fn = join(path_gdp_data, "GDP_per_capita_PPP_1990_2015_v2.nc")
         gdp_data = xr.open_dataset(gdp_data_fn)
         gdp_2015 = gdp_data.sel(time='2015.0')
@@ -142,7 +143,8 @@ def get_legacy_capacity_in_regions_from_non_open(tech: str, regions_shapes: pd.S
         new_lat = np.arange(min_lat, max_lat+spatial_res, spatial_res)
 
         gdp_ds = gdp_2015.where(mask_lon & mask_lat, drop=True)['GDP_per_capita_PPP']
-        pop_ds = pop_2020.where(mask_lon & mask_lat, drop=True)['UN WPP-Adjusted Population Count, v4.11 (2000, 2005, 2010, 2015, 2020): 15 arc-minutes']
+        pop_ds = pop_2020.where(mask_lon & mask_lat, drop=True)['UN WPP-Adjusted Population Count, v4.11 (2000,'
+                                                                ' 2005, 2010, 2015, 2020): 15 arc-minutes']
 
         gdp_ds = gdp_ds.reindex(longitude=new_lon, latitude=new_lat, method='nearest')\
             .stack(locations=('longitude', 'latitude'))
