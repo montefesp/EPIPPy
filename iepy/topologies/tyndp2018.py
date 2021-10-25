@@ -232,6 +232,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
     links['p_max_pu'] = p_max_pu
     links['p_min_pu'] = -p_max_pu  # Making the link bi-directional
     links['p_nom_extendable'] = p_nom_extendable
+
     if p_nom_extendable:
         # Choose p_nom_max based on some TYNDP 2040 scenario
         if extension_base == 'ST':
@@ -249,7 +250,7 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
     links['capital_cost'] = pd.Series(index=links.index)
     for idx in links.index:
         carrier = links.loc[idx].carrier
-        cap_cost, _ = get_costs(carrier, sum(network.snapshot_weightings))
+        cap_cost, _, _ = get_costs(carrier, sum(network.snapshot_weightings['objective']))
         links.loc[idx, ('capital_cost', )] = cap_cost * links.length.loc[idx]
 
     network.import_components_from_dataframe(buses, "Bus")
@@ -264,31 +265,31 @@ def get_topology(network: pypsa.Network, countries: List[str] = None,
 
 
 if __name__ == "__main__":
-    # preprocess(True)
+    preprocess(plotting=False)
 
-    if 1:
-        from pypsa import Network
-        from iepy.geographics import get_subregions
-        import matplotlib.pyplot as plt
-
-        topology_dir = f"{data_path}topologies/tyndp2018/generated/"
-        links_fn = f"{topology_dir}links.csv"
-        links = pd.read_csv(links_fn, index_col='id')
-        print(links.p_nom_st.sum())
-        print(links.p_nom_dg.sum())
-        print(links.p_nom_gca.sum())
-        print((links.p_nom_st*links.length).sum())
-        print((links.p_nom_dg*links.length).sum())
-        print((links.p_nom_gca*links.length).sum())
-        exit()
-        diff_st_dg = (links.p_nom_dg - links.p_nom_st).abs()
-        diff_st_gca = (links.p_nom_gca - links.p_nom_st).abs()
-        diff_dg_gca = (links.p_nom_gca - links.p_nom_dg).abs()
-        pd.concat((diff_st_gca, diff_st_dg, diff_dg_gca), axis=1).max(axis=1).plot(kind='bar')
-        plt.figure()
-        links.p_nom_st.plot(ls='-', marker='.', c='b', alpha=0.5)
-        links.p_nom_dg.plot(ls='-', marker='.', c='r', alpha=0.5)
-        links.p_nom_gca.plot(ls='-', marker='.', c='g', alpha=0.5)
-        plt.xticks(ticks=range(len(links)), labels=list(links.index), rotation='90')
-        plt.grid()
-        plt.show()
+    # if 1:
+    #     from pypsa import Network
+    #     from iepy.geographics import get_subregions
+    #     import matplotlib.pyplot as plt
+    #
+    #     topology_dir = f"{data_path}topologies/tyndp2018/generated/"
+    #     links_fn = f"{topology_dir}links.csv"
+    #     links = pd.read_csv(links_fn, index_col='id')
+    #     print(links.p_nom_st.sum())
+    #     print(links.p_nom_dg.sum())
+    #     print(links.p_nom_gca.sum())
+    #     print((links.p_nom_st*links.length).sum())
+    #     print((links.p_nom_dg*links.length).sum())
+    #     print((links.p_nom_gca*links.length).sum())
+    #     exit()
+    #     diff_st_dg = (links.p_nom_dg - links.p_nom_st).abs()
+    #     diff_st_gca = (links.p_nom_gca - links.p_nom_st).abs()
+    #     diff_dg_gca = (links.p_nom_gca - links.p_nom_dg).abs()
+    #     pd.concat((diff_st_gca, diff_st_dg, diff_dg_gca), axis=1).max(axis=1).plot(kind='bar')
+    #     plt.figure()
+    #     links.p_nom_st.plot(ls='-', marker='.', c='b', alpha=0.5)
+    #     links.p_nom_dg.plot(ls='-', marker='.', c='r', alpha=0.5)
+    #     links.p_nom_gca.plot(ls='-', marker='.', c='g', alpha=0.5)
+    #     plt.xticks(ticks=range(len(links)), labels=list(links.index), rotation='90')
+    #     plt.grid()
+    #     plt.show()

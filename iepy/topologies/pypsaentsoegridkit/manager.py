@@ -122,9 +122,12 @@ def load_topology(net, nuts_codes, config, voltages: List[float] = None, plot: b
     if plot:
         import matplotlib.pyplot as plt
         from iepy.topologies.core.plot import plot_topology
-        all_lines = pd.concat((net.links[['bus0', 'bus1']], net.lines[['bus0', 'bus1']]))
+        dc_lines = net.links[['bus0', 'bus1']]
+        dc_lines['type'] = 'dc'
+        ac_lines = net.lines[['bus0', 'bus1']]
+        ac_lines['type'] = 'ac'
+        all_lines = pd.concat((ac_lines, dc_lines))
         plot_topology(net.buses, all_lines)
-        plt.show()
 
     return net
 
@@ -168,7 +171,7 @@ if __name__ == '__main__':
 
     voltages_ = [132., 220., 300., 380.]
     from iepy.geographics import get_subregions, get_nuts_codes, revert_iso2_codes
-    countries_ = get_subregions("CWE")
+    countries_ = get_subregions("CONT")
     nuts_codes_ = get_nuts_codes(2, 2016, revert_iso2_codes(countries_))
     # Some weird BEZ, LUZ, etc...
     nuts_codes_ = [code for code in nuts_codes_ if not code.endswith('Z')]
