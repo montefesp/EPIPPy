@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.topologies.ehighways import *
+from epippy.topologies.ehighways import *
 
 
 def test_get_ehighway_clusters():

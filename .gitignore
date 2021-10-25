@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # Init file
-iepy/__init__.py
+epippy/__init__.py

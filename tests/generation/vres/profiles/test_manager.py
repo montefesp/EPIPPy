@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.generation.vres.profiles import *
+from epippy.generation.vres.profiles import *
 
 
 def test_read_resource_database_wrong_spatial_resolution():

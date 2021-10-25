@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.indicators.population import *
+from epippy.indicators.population import *
 
 
 def test_wrong_input():

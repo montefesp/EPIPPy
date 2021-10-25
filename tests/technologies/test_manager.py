@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.technologies.manager import *
+from epippy.technologies.manager import *
 
 
 def test_get_config_dict_empty_list_of_techs():

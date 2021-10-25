@@ -1,6 +1,6 @@
 import pytest
 
-from iepy.topologies.tyndp2018 import *
+from epippy.topologies.tyndp2018 import *
 
 
 def test_get_topology_no_countries():
