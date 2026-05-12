@@ -21,7 +21,7 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         'pypsa',
-        'gdal==2.4.4',
+        'gdal==3.13.0',
         'pycountry',
         'geopandas',
         'geopy',
